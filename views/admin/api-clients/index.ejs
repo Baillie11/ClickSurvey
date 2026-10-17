@@ -1,0 +1,55 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1>API Clients</h1>
+</div>
+<div class="card p-4 mb-4">
+  <h5>Create API Client</h5>
+  <p class="text-muted small">API clients allow external applications to trigger surveys and create invites via the ClickSurvey API. Each client gets a unique API key.</p>
+  <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <form method="post" action="/admin/api-clients">
+    <div class="row g-3">
+      <div class="col-md-8">
+        <label class="form-label">Client name <span class="text-danger">*</span></label>
+        <input name="client_name" class="form-control" placeholder="e.g., My Ecommerce Platform" required />
+        <small class="form-text text-muted">A descriptive name for this API client (e.g., your app or partner name).</small>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-select">
+          <option value="Active">Active</option>
+          <option value="Disabled">Disabled</option>
+        </select>
+        <small class="form-text text-muted"><strong>Active:</strong> Can use API. <strong>Disabled:</strong> Requests will be rejected.</small>
+      </div>
+      <div class="col-12"><button class="btn btn-primary">Create API Client</button></div>
+    </div>
+  </form>
+</div>
+<% if (apiKey) { %>
+  <div class="alert alert-success">
+    <strong>✓ API Key created!</strong> Copy it now, it will not be shown again. Store it securely (e.g., in environment variables).
+    <pre><code><%= apiKey %></code></pre>
+  </div>
+<% } %>
+<div class="card p-4">
+  <h4>Existing Clients</h4>
+  <p class="text-muted small">Once an API client is disabled, its requests will be rejected. You cannot regenerate lost keys—create a new client if needed.</p>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead><tr><th>Name</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+      <tbody>
+        <% clients.forEach(client => { %>
+          <tr>
+            <td><%= client.client_name %></td>
+            <td><span class="badge <%= client.status === 'Active' ? 'bg-success' : 'bg-secondary' %>"><%= client.status %></span></td>
+            <td><%= new Date(client.created_at).toLocaleDateString() %></td>
+            <td>
+              <form method="post" action="/admin/api-clients/<%= client.id %>/toggle" class="d-inline">
+                <button class="btn btn-sm btn-outline-secondary"><%= client.status === 'Active' ? 'Disable' : 'Enable' %></button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

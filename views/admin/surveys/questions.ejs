@@ -1,0 +1,67 @@
+<div class="d-flex justify-content-between align-items-center mb-3"><h1>Questions - <%= survey.title %></h1><a class="btn btn-primary" href="/admin/surveys">Back to Surveys</a></div>
+<div class="card p-4 mb-4">
+  <h5>Add New Question</h5>
+  <p class="text-muted small">Build your survey by adding questions below. Questions appear in the order they were added.</p>
+  <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <form method="post" action="/admin/surveys/<%= survey.id %>/questions">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Question text <span class="text-danger">*</span></label>
+        <input name="question_text" class="form-control" placeholder="e.g., How satisfied are you with our service?" required />
+        <small class="form-text text-muted">The question as shown to respondents.</small>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Type <span class="text-danger">*</span></label>
+        <select name="question_type" class="form-select" required>
+          <option value="short_text">Short text</option>
+          <option value="long_text">Long text</option>
+          <option value="multiple_choice">Multiple choice</option>
+          <option value="checkboxes">Checkboxes</option>
+          <option value="dropdown">Dropdown</option>
+          <option value="star_rating">Star rating</option>
+          <option value="rating_1_10">1-10 rating</option>
+          <option value="yes_no">Yes / No</option>
+          <option value="email">Email</option>
+          <option value="name">Name</option>
+          <option value="number">Number</option>
+        </select>
+        <small class="form-text text-muted">Choose the format for responses.</small>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Required</label>
+        <div class="form-check mt-2">
+          <input class="form-check-input" type="checkbox" name="required" value="1" id="requiredCheck" />
+          <label class="form-check-label" for="requiredCheck">Respondents must answer</label>
+        </div>
+      </div>
+      <div class="col-12">
+        <label class="form-label">Options (for choice questions)</label>
+        <textarea name="options_json" class="form-control" rows="2" placeholder='["Option 1", "Option 2", "Option 3"]'></textarea>
+        <small class="form-text text-muted">For multiple choice, checkboxes, or dropdowns, enter options as a JSON array. Example: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied"]</small>
+      </div>
+    </div>
+    <button class="btn btn-primary mt-3">Add Question</button>
+  </form>
+</div>
+<div class="card p-4">
+  <h4>Questions</h4>
+  <div class="table-responsive">
+    <table class="table">
+      <thead><tr><th>Order</th><th>Question</th><th>Type</th><th>Required</th><th>Actions</th></tr></thead>
+      <tbody>
+        <% questions.forEach(q => { %>
+          <tr>
+            <td><%= q.sort_order %></td>
+            <td><%= q.question_text %></td>
+            <td><%= q.question_type %></td>
+            <td><%= q.required ? 'Yes' : 'No' %></td>
+            <td>
+              <a class="btn btn-sm btn-outline-secondary" href="/admin/surveys/<%= survey.id %>/questions/<%= q.id %>/edit">Edit</a>
+              <form class="d-inline" method="post" action="/admin/surveys/<%= survey.id %>/questions/<%= q.id %>/delete"><button class="btn btn-sm btn-danger">Delete</button></form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

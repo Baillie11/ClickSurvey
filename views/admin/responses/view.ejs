@@ -1,0 +1,15 @@
+<h1>Response #<%= response.id %></h1>
+<div class="card p-4 mb-4">
+  <h4>Survey: <%= response.survey_title %></h4>
+  <p><strong>Submitted:</strong> <%= new Date(response.submitted_at).toLocaleString() %></p>
+  <p><strong>Recipient:</strong> <%= response.recipient_name || response.recipient_email || 'Guest' %></p>
+  <p><strong>Source app:</strong> <%= response.source_app || 'N/A' %></p>
+  <p><strong>Event type:</strong> <%= response.event_type || 'N/A' %></p>
+  <p><strong>Metadata:</strong> <pre><%= response.metadata_json || '{}' %></pre></p>
+</div>
+<div class="card p-4">
+  <h4>Answers</h4>
+  <% answers.forEach(answer => { %>
+    <div class="mb-3"><strong><%= answer.question_text %></strong><p><%= answer.answer_text %></p></div>
+  <% }) %>
+</div>

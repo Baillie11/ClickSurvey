@@ -1,0 +1,58 @@
+<div class="row g-4">
+  <div class="col-md-3"><div class="card p-3"><h5>Surveys</h5><p class="display-6"><%= stats.surveyCount %></p></div></div>
+  <div class="col-md-3"><div class="card p-3"><h5>Active</h5><p class="display-6"><%= stats.activeCount %></p></div></div>
+  <div class="col-md-3"><div class="card p-3"><h5>Responses</h5><p class="display-6"><%= stats.responseCount %></p></div></div>
+  <div class="col-md-3"><div class="card p-3"><h5>Invites</h5><p class="display-6"><%= stats.inviteCount %></p></div></div>
+</div>
+<div class="row mt-4">
+  <div class="col-lg-8">
+    <div class="alert alert-info d-flex justify-content-between align-items-center mb-4">
+      <span><strong>💡 Getting started?</strong> Check out the <a href="/admin/help">Help & Tutorial</a> for a complete guide to ClickSurvey.</span>
+    </div>
+    <div class="card p-4 mb-4">
+      <h4>Quick actions</h4>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-primary" href="/admin/surveys">Manage Surveys</a>
+        <a class="btn btn-outline-primary" href="/admin/api-clients">API Clients</a>
+        <a class="btn btn-outline-primary" href="/admin/automation">Automation Rules</a>
+        <a class="btn btn-outline-primary" href="/admin/responses">Responses</a>
+      </div>
+    </div>
+    <div class="card p-4 mb-4">
+      <h4>Recent Responses</h4>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead><tr><th>ID</th><th>Survey</th><th>Recipient</th><th>Submitted</th></tr></thead>
+          <tbody>
+            <% recentResponses.forEach(r => { %>
+              <tr>
+                <td><a href="/admin/responses/<%= r.id %>"><%= r.id %></a></td>
+                <td><%= r.title %></td>
+                <td><%= r.recipient_name || r.recipient_email || 'Guest' %></td>
+                <td><%= new Date(r.submitted_at).toLocaleString() %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card p-4 mb-4">
+      <h4>Recent Events</h4>
+      <ul class="list-group list-group-flush">
+        <% recentEvents.forEach(event => { %>
+          <li class="list-group-item"><strong><%= event.source_app %></strong> <span class="text-muted">/<%= event.event_type %></span><br><small><%= event.recipient_email %></small></li>
+        <% }) %>
+      </ul>
+    </div>
+    <div class="card p-4">
+      <h4>Recent Invites</h4>
+      <ul class="list-group list-group-flush">
+        <% recentInvites.forEach(invite => { %>
+          <li class="list-group-item"><strong><%= invite.title %></strong> <span class="badge bg-secondary"><%= invite.status %></span><br><small><%= invite.recipient_email %></small></li>
+        <% }) %>
+      </ul>
+    </div>
+  </div>
+</div>

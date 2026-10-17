@@ -1,0 +1,60 @@
+<div class="card p-4">
+  <h1>Edit Survey</h1>
+  <p class="text-muted">Update your survey configuration and branding. Changes apply immediately to active surveys.</p>
+  <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <form method="post" action="/admin/surveys/<%= survey.id %>">
+    <div class="mb-3">
+      <label class="form-label">Survey Key <span class="text-danger">*</span></label>
+      <input name="survey_key" class="form-control" value="<%= survey.survey_key %>" required />
+      <small class="form-text text-muted">Unique identifier (cannot be changed after creation).</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Title <span class="text-danger">*</span></label>
+      <input name="title" class="form-control" value="<%= survey.title %>" required />
+      <small class="form-text text-muted">Display name shown in your dashboard and to respondents.</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Description</label>
+      <textarea name="description" class="form-control" rows="3"><%= survey.description %></textarea>
+      <small class="form-text text-muted">Internal notes to help you remember why this survey was created.</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Thank You Message</label>
+      <textarea name="thank_you_message" class="form-control" rows="2"><%= survey.thank_you_message %></textarea>
+      <small class="form-text text-muted">Message displayed to respondents after they submit the survey.</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Status</label>
+      <select name="status" class="form-select">
+        <option value="Draft" <%= survey.status === 'Draft' ? 'selected' : '' %>>Draft</option>
+        <option value="Active" <%= survey.status === 'Active' ? 'selected' : '' %>>Active</option>
+        <option value="Paused" <%= survey.status === 'Paused' ? 'selected' : '' %>>Paused</option>
+        <option value="Archived" <%= survey.status === 'Archived' ? 'selected' : '' %>>Archived</option>
+      </select>
+      <small class="form-text text-muted"><strong>Draft:</strong> Not yet live. <strong>Active:</strong> Ready to receive responses. <strong>Paused:</strong> Temporarily stop collecting responses. <strong>Archived:</strong> Hidden from active list.</small>
+    </div>
+    <hr />
+    <h5>Branding</h5>
+    <div class="mb-3">
+      <label class="form-label">Brand Name</label>
+      <input name="brand_name" class="form-control" value="<%= survey.brand_name %>" />
+      <small class="form-text text-muted">Displayed at the top of the survey page.</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Logo URL</label>
+      <input name="logo_url" class="form-control" value="<%= survey.logo_url %>" />
+      <small class="form-text text-muted">Full URL to your company logo (must be publicly accessible).</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Primary Colour</label>
+      <input name="primary_colour" type="color" class="form-control form-control-color" value="<%= survey.primary_colour || '#0d6efd' %>" />
+      <small class="form-text text-muted">Main accent colour for buttons and headings.</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Footer Text</label>
+      <input name="footer_text" class="form-control" value="<%= survey.footer_text %>" />
+      <small class="form-text text-muted">Text displayed at the bottom of the survey page.</small>
+    </div>
+    <button class="btn btn-primary">Save Changes</button>
+  </form>
+</div>

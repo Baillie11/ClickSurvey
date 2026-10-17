@@ -1,0 +1,60 @@
+<div class="card p-4">
+  <h1>Create Survey</h1>
+  <p class="text-muted">Set up your survey configuration and branding below. You can add questions after creating the survey.</p>
+  <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <form method="post" action="/admin/surveys">
+    <div class="mb-3">
+      <label class="form-label">Survey Key <span class="text-danger">*</span></label>
+      <input name="survey_key" class="form-control" placeholder="e.g., customer_feedback" value="<%= survey.survey_key || '' %>" required />
+      <small class="form-text text-muted">Unique identifier for this survey (alphanumeric, no spaces). Used in URLs and API calls.</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Title <span class="text-danger">*</span></label>
+      <input name="title" class="form-control" placeholder="e.g., Customer Satisfaction Survey" value="<%= survey.title || '' %>" required />
+      <small class="form-text text-muted">Display name shown in your dashboard and to respondents.</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Description</label>
+      <textarea name="description" class="form-control" rows="3" placeholder="Describe the purpose of this survey (optional)"><%= survey.description || '' %></textarea>
+      <small class="form-text text-muted">Internal notes to help you remember why this survey was created.</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Thank You Message</label>
+      <textarea name="thank_you_message" class="form-control" rows="2" placeholder="e.g., Thank you for taking the time to complete this survey!"><%= survey.thank_you_message || '' %></textarea>
+      <small class="form-text text-muted">Message displayed to respondents after they submit the survey.</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Status</label>
+      <select name="status" class="form-select">
+        <option value="Draft">Draft</option>
+        <option value="Active">Active</option>
+        <option value="Paused">Paused</option>
+        <option value="Archived">Archived</option>
+      </select>
+      <small class="form-text text-muted"><strong>Draft:</strong> Not yet live. <strong>Active:</strong> Ready to receive responses. <strong>Paused:</strong> Temporarily stop collecting responses. <strong>Archived:</strong> Hidden from active list.</small>
+    </div>
+    <hr />
+    <h5>Branding</h5>
+    <div class="mb-3">
+      <label class="form-label">Brand Name</label>
+      <input name="brand_name" class="form-control" placeholder="e.g., Your Company Name" value="<%= survey.brand_name || '' %>" />
+      <small class="form-text text-muted">Displayed at the top of the survey page.</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Logo URL</label>
+      <input name="logo_url" class="form-control" placeholder="e.g., https://example.com/logo.png" value="<%= survey.logo_url || '' %>" />
+      <small class="form-text text-muted">Full URL to your company logo (must be publicly accessible).</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Primary Colour</label>
+      <input name="primary_colour" type="color" class="form-control form-control-color" value="<%= survey.primary_colour || '#0d6efd' %>" />
+      <small class="form-text text-muted">Main accent colour for buttons and headings.</small>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Footer Text</label>
+      <input name="footer_text" class="form-control" placeholder="e.g., © 2026 Your Company. All rights reserved." value="<%= survey.footer_text || '' %>" />
+      <small class="form-text text-muted">Text displayed at the bottom of the survey page.</small>
+    </div>
+    <button class="btn btn-primary">Save Survey</button>
+  </form>
+</div>

@@ -1,0 +1,23 @@
+<div class="card p-4">
+  <h1>Edit Question</h1>
+  <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <form method="post" action="/admin/surveys/<%= survey.id %>/questions/<%= question.id %>">
+    <div class="mb-3"><label class="form-label">Question text</label><input name="question_text" class="form-control" value="<%= question.question_text %>" required /></div>
+    <div class="mb-3"><label class="form-label">Type</label><select name="question_type" class="form-select" required>
+      <option value="short_text" <%= question.question_type==='short_text' ? 'selected' : '' %>>Short text</option>
+      <option value="long_text" <%= question.question_type==='long_text' ? 'selected' : '' %>>Long text</option>
+      <option value="multiple_choice" <%= question.question_type==='multiple_choice' ? 'selected' : '' %>>Multiple choice</option>
+      <option value="checkboxes" <%= question.question_type==='checkboxes' ? 'selected' : '' %>>Checkboxes</option>
+      <option value="dropdown" <%= question.question_type==='dropdown' ? 'selected' : '' %>>Dropdown</option>
+      <option value="star_rating" <%= question.question_type==='star_rating' ? 'selected' : '' %>>Star rating</option>
+      <option value="rating_1_10" <%= question.question_type==='rating_1_10' ? 'selected' : '' %>>1-10 rating</option>
+      <option value="yes_no" <%= question.question_type==='yes_no' ? 'selected' : '' %>>Yes / No</option>
+      <option value="email" <%= question.question_type==='email' ? 'selected' : '' %>>Email</option>
+      <option value="name" <%= question.question_type==='name' ? 'selected' : '' %>>Name</option>
+      <option value="number" <%= question.question_type==='number' ? 'selected' : '' %>>Number</option>
+    </select></div>
+    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="required" value="1" <%= question.required ? 'checked' : '' %> /><label class="form-check-label">Required</label></div>
+    <div class="mb-3"><label class="form-label">Options JSON</label><textarea name="options_json" class="form-control" rows="2"><%= question.options_json %></textarea></div>
+    <button class="btn btn-primary">Save Question</button>
+  </form>
+</div>

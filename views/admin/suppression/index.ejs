@@ -1,0 +1,50 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1>Suppression List</h1>
+</div>
+<div class="card p-4 mb-4">
+  <h5>Add to Suppression List</h5>
+  <p class="text-muted small">Suppress email addresses to prevent them from receiving survey invitations (e.g., bounced emails, opt-outs, internal staff).</p>
+  <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <form method="post" action="/admin/suppression">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Email <span class="text-danger">*</span></label>
+        <input type="email" name="email" class="form-control" placeholder="user@example.com" required />
+        <small class="form-text text-muted">The email address to suppress.</small>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Source app</label>
+        <input name="source_app" class="form-control" placeholder="e.g., ecommerce_platform (optional)" />
+        <small class="form-text text-muted">If specified, suppress only for this app. Leave blank to suppress from all sources.</small>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Reason</label>
+        <input name="reason" class="form-control" placeholder="e.g., Bounced email, Opt-out" />
+        <small class="form-text text-muted">Why this email is being suppressed (for your records).</small>
+      </div>
+      <div class="col-12"><button class="btn btn-primary">Add Suppression</button></div>
+    </div>
+  </form>
+</div>
+<div class="card p-4">
+  <h4>Suppressed Contacts</h4>
+  <p class="text-muted small">These emails will not receive survey invitations. To re-enable, remove from this list.</p>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead><tr><th>Email</th><th>Source App</th><th>Reason</th><th>Created</th></tr></thead>
+      <tbody>
+        <% if (suppressed.length === 0) { %>
+          <tr><td colspan="4" class="text-center text-muted">No suppressed contacts yet.</td></tr>
+        <% } %>
+        <% suppressed.forEach(item => { %>
+          <tr>
+            <td><%= item.email %></td>
+            <td><span class="badge bg-light text-dark"><%= item.source_app || 'All' %></span></td>
+            <td><%= item.reason || '—' %></td>
+            <td><%= new Date(item.created_at).toLocaleDateString() %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>

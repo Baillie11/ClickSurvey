@@ -1,0 +1,15 @@
+:root {
+  --primary: #0d6efd;
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --text: #212529;
+}
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+.card { border-radius: 0.85rem; }
+.btn-primary { background-color: var(--primary); border-color: var(--primary); }
+.footer-small { font-size: 0.9rem; color: #6c757d; }
+.form-label { font-weight: 600; }
+.hero-card { background: #fff; border: 1px solid #e9ecef; box-shadow: 0 1px 20px rgba(0,0,0,0.03); }

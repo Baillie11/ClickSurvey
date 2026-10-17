@@ -1,0 +1,57 @@
+<div class="card p-4">
+  <div class="d-flex align-items-center mb-3">
+    <% if (survey.logo_url) { %><img src="<%= survey.logo_url %>" alt="Logo" class="me-3" style="height:48px;"/><% } %>
+    <div>
+      <h1><%= survey.title %></h1>
+      <p class="text-muted"><%= survey.description %></p>
+    </div>
+  </div>
+  <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <form method="post" action="/s/<%= survey.survey_key %>">
+    <% questions.forEach(question => { %>
+      <div class="mb-3">
+        <label class="form-label"><%= question.question_text %><%= question.required ? ' *' : '' %></label>
+        <% if (question.question_type === 'short_text') { %>
+          <input type="text" name="question_<%= question.id %>" class="form-control" />
+        <% } else if (question.question_type === 'long_text') { %>
+          <textarea name="question_<%= question.id %>" class="form-control" rows="3"></textarea>
+        <% } else if (question.question_type === 'email') { %>
+          <input type="email" name="question_<%= question.id %>" class="form-control" />
+        <% } else if (question.question_type === 'number') { %>
+          <input type="number" name="question_<%= question.id %>" class="form-control" />
+        <% } else if (question.question_type === 'dropdown') { %>
+          <select name="question_<%= question.id %>" class="form-select">
+            <option value="">Choose...</option>
+            <% JSON.parse(question.options_json || '[]').forEach(opt => { %><option value="<%= opt %>"><%= opt %></option><% }) %>
+          </select>
+        <% } else if (question.question_type === 'multiple_choice') { %>
+          <% JSON.parse(question.options_json || '[]').forEach(opt => { %>
+            <div class="form-check"><input class="form-check-input" type="radio" name="question_<%= question.id %>" value="<%= opt %>" /><label class="form-check-label"><%= opt %></label></div>
+          <% }) %>
+        <% } else if (question.question_type === 'checkboxes') { %>
+          <% JSON.parse(question.options_json || '[]').forEach(opt => { %>
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="question_<%= question.id %>" value="<%= opt %>" /><label class="form-check-label"><%= opt %></label></div>
+          <% }) %>
+        <% } else if (question.question_type === 'star_rating') { %>
+          <select name="question_<%= question.id %>" class="form-select">
+            <option value="">Choose...</option>
+            <% for (let i = 1; i <= 5; i++) { %><option value="<%= i %>"><%= i %> star<%= i > 1 ? 's' : '' %></option><% } %>
+          </select>
+        <% } else if (question.question_type === 'rating_1_10') { %>
+          <select name="question_<%= question.id %>" class="form-select">
+            <option value="">Choose...</option>
+            <% for (let i = 1; i <= 10; i++) { %><option value="<%= i %>"><%= i %></option><% } %>
+          </select>
+        <% } else if (question.question_type === 'yes_no') { %>
+          <select name="question_<%= question.id %>" class="form-select"><option value="">Choose...</option><option value="Yes">Yes</option><option value="No">No</option></select>
+        <% } else if (question.question_type === 'name') { %>
+          <input type="text" name="question_<%= question.id %>" class="form-control" />
+        <% } else { %>
+          <input type="text" name="question_<%= question.id %>" class="form-control" />
+        <% } %>
+      </div>
+    <% }) %>
+    <button class="btn btn-primary">Submit Survey</button>
+  </form>
+  <footer class="mt-4 text-muted"><%= survey.footer_text %></footer>
+</div>

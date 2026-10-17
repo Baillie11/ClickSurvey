@@ -1,0 +1,24 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1>Surveys</h1>
+  <a class="btn btn-primary" href="/admin/surveys/new">New Survey</a>
+</div>
+<div class="table-responsive">
+  <table class="table table-hover">
+    <thead><tr><th>Title</th><th>Key</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
+    <tbody>
+      <% surveys.forEach(survey => { %>
+        <tr>
+          <td><%= survey.title %></td>
+          <td><%= survey.survey_key %></td>
+          <td><%= survey.status %></td>
+          <td><%= new Date(survey.updated_at).toLocaleDateString() %></td>
+          <td>
+            <a class="btn btn-sm btn-outline-secondary" href="/admin/surveys/<%= survey.id %>/edit">Edit</a>
+            <a class="btn btn-sm btn-outline-secondary" href="/admin/surveys/<%= survey.id %>/questions">Questions</a>
+            <form class="d-inline" method="post" action="/admin/surveys/<%= survey.id %>/delete"><button class="btn btn-sm btn-danger">Archive</button></form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>

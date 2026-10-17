@@ -1,0 +1,235 @@
+<div class="container-fluid">
+  <h1 class="mb-4">ClickSurvey User Guide</h1>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      
+      <!-- Getting Started -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">🚀 Getting Started</h5>
+        </div>
+        <div class="card-body">
+          <p>ClickSurvey helps you automatically send surveys when specific events occur in your applications. Here's the typical workflow:</p>
+          <ol>
+            <li><strong>Create a Survey</strong> – Design your survey with questions and branding</li>
+            <li><strong>Add Questions</strong> – Build out the survey content</li>
+            <li><strong>Set Up Automation</strong> – Trigger the survey when events occur (e.g., after a purchase)</li>
+            <li><strong>Configure API</strong> – Optional: Use the API to send surveys programmatically</li>
+            <li><strong>Manage Suppression</strong> – Prevent certain emails from receiving invitations</li>
+            <li><strong>Track Responses</strong> – View and export survey results</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Surveys Section -->
+      <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">📋 Surveys</h5>
+        </div>
+        <div class="card-body">
+          <h6>What is a Survey?</h6>
+          <p>A survey is a template containing questions and branding. Once created, you can set up automations to send it to respondents.</p>
+          
+          <h6 class="mt-3">Creating a Survey</h6>
+          <p><strong>Go to:</strong> Admin → Surveys → New Survey</p>
+          <ul>
+            <li><strong>Survey Key:</strong> A unique identifier (e.g., <code>customer_nps</code>). Used in URLs and API calls. Cannot contain spaces.</li>
+            <li><strong>Title:</strong> The name of the survey as seen in your dashboard.</li>
+            <li><strong>Description:</strong> Internal notes about why this survey exists.</li>
+            <li><strong>Thank You Message:</strong> What respondents see after they submit.</li>
+            <li><strong>Status:</strong> Draft (unpublished) → Active (live) → Paused (temporarily off) → Archived (hidden)</li>
+          </ul>
+          
+          <h6 class="mt-3">Branding</h6>
+          <ul>
+            <li><strong>Brand Name:</strong> Your company name displayed at the top.</li>
+            <li><strong>Logo URL:</strong> Full URL to your logo image (must be publicly accessible).</li>
+            <li><strong>Primary Colour:</strong> Hex code for buttons and accents.</li>
+            <li><strong>Footer Text:</strong> Copyright or additional info at the bottom.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Questions Section -->
+      <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">❓ Questions</h5>
+        </div>
+        <div class="card-body">
+          <h6>Adding Questions to a Survey</h6>
+          <p><strong>Go to:</strong> Admin → Surveys → [Survey Name] → Questions</p>
+          
+          <h6 class="mt-3">Question Types</h6>
+          <ul>
+            <li><strong>Short text:</strong> One-line response (e.g., "What's your name?")</li>
+            <li><strong>Long text:</strong> Multi-line response for detailed feedback.</li>
+            <li><strong>Multiple choice:</strong> One answer from a list.</li>
+            <li><strong>Checkboxes:</strong> Multiple answers allowed.</li>
+            <li><strong>Dropdown:</strong> One answer from a scrollable list.</li>
+            <li><strong>Star rating:</strong> 1-5 star visual rating.</li>
+            <li><strong>1-10 rating:</strong> Numeric rating scale.</li>
+            <li><strong>Yes / No:</strong> Simple binary choice.</li>
+            <li><strong>Email:</strong> Validates email format.</li>
+            <li><strong>Name:</strong> Pre-formatted text field for names.</li>
+            <li><strong>Number:</strong> Numeric input only.</li>
+          </ul>
+          
+          <h6 class="mt-3">Setting Up Options</h6>
+          <p>For multiple choice, checkboxes, or dropdown questions, enter options as a JSON array:</p>
+          <pre><code>["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied"]</code></pre>
+          
+          <h6 class="mt-3">Required Questions</h6>
+          <p>Check "Required" to make respondents answer this question before submitting.</p>
+        </div>
+      </div>
+
+      <!-- Automation Section -->
+      <div class="card mb-4">
+        <div class="card-header bg-warning text-white">
+          <h5 class="mb-0">⚙️ Automation Rules</h5>
+        </div>
+        <div class="card-body">
+          <h6>What is an Automation Rule?</h6>
+          <p>A rule that automatically sends a survey when a specific event occurs. For example, send an NPS survey 1 hour after a customer completes a purchase.</p>
+          
+          <h6 class="mt-3">Creating a Rule</h6>
+          <p><strong>Go to:</strong> Admin → Automation → Create Automation Rule</p>
+          
+          <ul>
+            <li><strong>Rule name:</strong> A descriptive label (e.g., "Post-Purchase NPS").</li>
+            <li><strong>Source app:</strong> The system sending the event (e.g., <code>ecommerce_platform</code>, <code>crm_system</code>).</li>
+            <li><strong>Event type:</strong> The specific trigger (e.g., <code>order_completed</code>, <code>support_ticket_resolved</code>).</li>
+            <li><strong>Survey:</strong> Which survey to send.</li>
+            <li><strong>Delay minutes:</strong> Wait time before sending (e.g., 60 = send 1 hour later).</li>
+            <li><strong>Status:</strong> Active or Inactive. Inactive rules don't trigger.</li>
+          </ul>
+          
+          <h6 class="mt-3">Example</h6>
+          <ul>
+            <li>Rule Name: "Order Feedback"</li>
+            <li>Source: <code>shopify</code></li>
+            <li>Event: <code>order_completed</code></li>
+            <li>Survey: "Customer Satisfaction"</li>
+            <li>Delay: 60 minutes</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- API Clients Section -->
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">🔌 API Clients</h5>
+        </div>
+        <div class="card-body">
+          <h6>What is an API Client?</h6>
+          <p>An API client allows external applications to programmatically trigger surveys and create invite records without using the web dashboard.</p>
+          
+          <h6 class="mt-3">Creating a Client</h6>
+          <p><strong>Go to:</strong> Admin → API Clients → Create API Client</p>
+          <ul>
+            <li><strong>Client name:</strong> A descriptive name (e.g., "My E-commerce Platform").</li>
+            <li><strong>Status:</strong> Active (can use API) or Disabled (requests rejected).</li>
+          </ul>
+          
+          <h6 class="mt-3">Using the API Key</h6>
+          <p>After creating a client, an API key is generated. <strong>Copy it immediately</strong> – it will not be shown again. Store it securely (e.g., in environment variables).</p>
+          
+          <h6 class="mt-3">API Endpoint Example</h6>
+          <pre><code>POST /api/events
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+
+{
+  "source_app": "ecommerce_platform",
+  "event_type": "order_completed",
+  "recipient_email": "customer@example.com",
+  "recipient_name": "John Doe",
+  "survey_key": "customer_nps"
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- Suppression List Section -->
+      <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+          <h5 class="mb-0">🚫 Suppression List</h5>
+        </div>
+        <div class="card-body">
+          <h6>What is Suppression?</h6>
+          <p>The suppression list prevents certain email addresses from receiving survey invitations. Use it for:</p>
+          <ul>
+            <li>Bounced or invalid emails</li>
+            <li>Email opt-outs or complaints</li>
+            <li>Internal staff (who shouldn't receive surveys)</li>
+            <li>Known spam addresses</li>
+          </ul>
+          
+          <h6 class="mt-3">Adding to Suppression</h6>
+          <p><strong>Go to:</strong> Admin → Suppression List → Add Suppression</p>
+          <ul>
+            <li><strong>Email:</strong> The address to suppress.</li>
+            <li><strong>Source app:</strong> Optional. If specified, only suppress for this app. Leave blank to suppress globally.</li>
+            <li><strong>Reason:</strong> Why it's being suppressed (for your records).</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Responses Section -->
+      <div class="card mb-4">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="mb-0">📊 Responses</h5>
+        </div>
+        <div class="card-body">
+          <h6>Viewing Responses</h6>
+          <p><strong>Go to:</strong> Admin → Responses</p>
+          <p>See all survey responses in a table. Click a response ID to view full details and answers.</p>
+          
+          <h6 class="mt-3">Exporting Data</h6>
+          <p><strong>Go to:</strong> Admin → Surveys → [Survey Name] → Export (CSV)</p>
+          <p>Download all responses for a specific survey in CSV format. Includes:</p>
+          <ul>
+            <li>Response ID, submission time</li>
+            <li>Respondent name and email</li>
+            <li>Source app and event type</li>
+            <li>All question answers</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <div class="card sticky-top" style="top: 1rem;">
+        <div class="card-header bg-light">
+          <h6 class="mb-0">Quick Links</h6>
+        </div>
+        <div class="list-group list-group-flush">
+          <a href="/admin" class="list-group-item list-group-item-action">📈 Dashboard</a>
+          <a href="/admin/surveys" class="list-group-item list-group-item-action">📋 Manage Surveys</a>
+          <a href="/admin/automation" class="list-group-item list-group-item-action">⚙️ Automation Rules</a>
+          <a href="/admin/api-clients" class="list-group-item list-group-item-action">🔌 API Clients</a>
+          <a href="/admin/suppression" class="list-group-item list-group-item-action">🚫 Suppression List</a>
+          <a href="/admin/responses" class="list-group-item list-group-item-action">📊 View Responses</a>
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-header bg-light">
+          <h6 class="mb-0">💡 Tips</h6>
+        </div>
+        <div class="card-body">
+          <ul class="small">
+            <li>Always test a survey in <strong>Draft</strong> mode before activating.</li>
+            <li>Use meaningful <strong>Survey Keys</strong> for easy identification in logs and API calls.</li>
+            <li>Set <strong>Delay</strong> in automation rules to give customers time to complete an action (e.g., receive their order).</li>
+            <li>Regularly check the <strong>Suppression List</strong> to manage bounces and opt-outs.</li>
+            <li><strong>Export CSV</strong> data regularly for backup and analysis in Excel/Google Sheets.</li>
+            <li>Use the same API key across multiple environments by storing it in environment variables.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

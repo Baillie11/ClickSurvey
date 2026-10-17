@@ -1,0 +1,69 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1>Automation Rules</h1>
+</div>
+<div class="card p-4 mb-4">
+  <h5>Create Automation Rule</h5>
+  <p class="text-muted small">Automatically send surveys when specific events occur in your applications.</p>
+  <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+  <form method="post" action="/admin/automation">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Rule name <span class="text-danger">*</span></label>
+        <input name="rule_name" class="form-control" placeholder="e.g., Order Feedback Survey" required />
+        <small class="form-text text-muted">A descriptive name for this automation rule.</small>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Source app <span class="text-danger">*</span></label>
+        <input name="source_app" class="form-control" placeholder="e.g., ecommerce_platform" required />
+        <small class="form-text text-muted">The application sending events (e.g., your order system, CRM, etc.).</small>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Event type <span class="text-danger">*</span></label>
+        <input name="event_type" class="form-control" placeholder="e.g., order_completed" required />
+        <small class="form-text text-muted">The specific event that triggers this rule (e.g., order_completed, customer_signup, support_ticket_resolved).</small>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Survey <span class="text-danger">*</span></label>
+        <select name="survey_id" class="form-select" required>
+          <option value="">Select survey</option>
+          <% surveys.forEach(s => { %><option value="<%= s.id %>"><%= s.title %></option><% }) %>
+        </select>
+        <small class="form-text text-muted">Which survey to send when this event occurs.</small>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Delay minutes</label>
+        <input type="number" name="delay_minutes" class="form-control" value="0" />
+        <small class="form-text text-muted">Wait this many minutes before sending the survey (e.g., 30 = send after 30 minutes).</small>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-select">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+        <small class="form-text text-muted"><strong>Active:</strong> This rule is active. <strong>Inactive:</strong> Pause without deleting.</small>
+      </div>
+      <div class="col-md-4 align-self-end"><button class="btn btn-primary w-100">Add Rule</button></div>
+    </div>
+  </form>
+</div>
+<div class="card p-4">
+  <h4>Existing Rules</h4>
+  <div class="table-responsive">
+    <table class="table table-sm">
+      <thead><tr><th>Name</th><th>Source</th><th>Event</th><th>Survey</th><th>Delay</th><th>Status</th></tr></thead>
+      <tbody>
+        <% rules.forEach(rule => { %>
+          <tr>
+            <td><%= rule.rule_name %></td>
+            <td><%= rule.source_app %></td>
+            <td><%= rule.event_type %></td>
+            <td><%= rule.survey_title %></td>
+            <td><%= rule.delay_minutes %> min</td>
+            <td><%= rule.status %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
