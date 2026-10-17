@@ -2,7 +2,8 @@
   <h1><%= invite.source_app %> Survey</h1>
   <p class="text-muted">Hi <%= invite.recipient_name || invite.recipient_email %>, we’d appreciate your feedback.</p>
   <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
-  <form method="post" action="/r/<%= invite.invite_token %>">
+  <form method="post" action="/r/<%= invite.invite_token %>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />">
     <% questions.forEach(question => { %>
       <div class="mb-3">
         <label class="form-label"><%= question.question_text %><%= question.required ? ' *' : '' %></label>

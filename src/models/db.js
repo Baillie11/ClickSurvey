@@ -1,67 +1,53 @@
-const fs = require('fs');
-const path = require('path');
-const bcrypt = require('bcrypt');
-const mysql = require('mysql2/promise');
-
-const SCHEMA_FILE = path.join(__dirname, '../../schema.sql');
-const DEFAULT_ADMIN = {
-  name: 'Admin',
-  email: 'admin@clicksurvey.com.au',
-  password: 'AdminPass123!'
-};
-
-async function initDb() {
-  const host = process.env.DB_HOST || '127.0.0.1';
-  const port = process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 3306;
-  const user = process.env.DB_USER;
-  const password = process.env.DB_PASSWORD;
-  const database = process.env.DB_NAME;
-
-  const setupConnection = await mysql.createConnection({
-    host,
-    port,
-    user,
-    password,
-    multipleStatements: true
-  });
-  await setupConnection.query(`CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-  await setupConnection.end();
-
-  const pool = await mysql.createPool({
-    host,
-    port,
-    user,
-    password,
-    database,
-    waitForConnections: true,
+const mysql = require("mysql2/promise");
+function dbOptions(overrides = {}) {
+  return {
+    host: process.env.DB_HOST || "127.0.0.1",
+    port: Number(process.env.DB_PORT || 3306),
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    timezone: "Z",
+    charset: "utf8mb4",
     connectionLimit: 10,
-    queueLimit: 0,
-    multipleStatements: true
-  });
-
-  await ensureSchema(pool, database);
-  await seedAdmin(pool);
-
-  return pool;
+    ...overrides,
+  };
 }
-
-async function ensureSchema(pool, database) {
-  const [rows] = await pool.query('SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = ?', [database]);
-  if (rows[0].count === 0) {
-    const schemaSql = fs.readFileSync(SCHEMA_FILE, 'utf8');
-    await pool.query(schemaSql);
+async function initDb() {
+  const pool = mysql.createPool(dbOptions());
+  try {
+    await pool.query("SELECT is_admin FROM users LIMIT 1");
+    const [rows] = await pool.query(
+      "SELECT version FROM schema_migrations WHERE version = '001-hardening'",
+    );
+    if (!rows.length) throw new Error("Run npm run db:migrate before starting");
+    return pool;
+  } catch (error) {
+    await pool.end();
+    throw error;
   }
 }
-
-async function seedAdmin(pool) {
-  const [rows] = await pool.query('SELECT COUNT(*) AS count FROM users');
-  if (rows[0].count === 0) {
-    const password_hash = await bcrypt.hash(DEFAULT_ADMIN.password, 10);
-    await pool.execute(
-      'INSERT INTO users (name, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
-      [DEFAULT_ADMIN.name, DEFAULT_ADMIN.email, password_hash]
+async function transaction(pool, work) {
+  for (let attempt = 0; ; attempt++) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const result = await work(connection);
+      await connection.commit();
+      return result;
+    } catch (error) {
+      await connection.rollback();
+      if (
+        !["ER_LOCK_DEADLOCK", "ER_LOCK_WAIT_TIMEOUT"].includes(error.code) ||
+        attempt >= 5
+      )
+        throw error;
+    } finally {
+      connection.release();
+    }
+    // Only database work belongs in work(): retries must not repeat external effects.
+    await new Promise((resolve) =>
+      setTimeout(resolve, 20 * (attempt + 1) + Math.random() * 30),
     );
   }
 }
-
-module.exports = { initDb };
+module.exports = { initDb, dbOptions, transaction };

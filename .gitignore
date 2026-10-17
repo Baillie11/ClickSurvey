@@ -7,3 +7,5 @@ npm-debug.log*
 coverage/
 .DS_Store
 Thumbs.db
+backups/
+*.sql.gz

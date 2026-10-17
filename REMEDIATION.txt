@@ -1,0 +1,82 @@
+ClickSurvey remediation record — 17 October 2026
+
+Implemented
+- Closed public registration; default bootstrap password removed. Administrators
+  are explicitly provisioned using admin:create. Existing prototype users receive
+  no automatic admin rights. This is one trusted admin team, not tenant hosting.
+- Persistent MySQL sessions, login session rotation, required session secret,
+  secure production cookies, CSRF form protection, request limits and headers.
+- Express 5 catches async handler rejections; API errors hide server details.
+- Indexed random API key identifiers, cryptographic secrets, scoped source names
+  and allowed survey IDs. Legacy keys are disabled by migration.
+- Required stable event IDs with a per-client unique database constraint,
+  canonical payload fingerprints, duplicate detection and conflict responses.
+- Transactions use checked-out connections and insert result IDs. Deadlocks are
+  retried only around database work. Partial survey response writes roll back.
+- Durable scheduled invitation queue, separate worker, bounded SMTP retries,
+  SMTP TLS settings, escaped HTML, delivery status API, admin delivery monitor,
+  Failed resend action, worker heartbeat and readiness endpoint.
+- Ambiguous SMTP outcomes become DeliveryUnknown for manual provider review;
+  interrupted Sending records are not blindly resent. SMTP acceptance and a
+  database update cannot be atomic; no exactly-once email claim is made.
+- Private invitations require a sent/opened, unexpired, unsuppressed invitation
+  and an Active survey; transactional completion and unique completion keys
+  prevent duplicate private responses. Required answers, types, choices, ranges
+  and lengths are checked on the server. Public surveys intentionally permit
+  multiple independent responses.
+- Working unsubscribe confirmation endpoint and global suppression. Email scanner
+  GET requests cannot unsubscribe recipients. No unsupported 'reply STOP' claim.
+- Survey/question configuration validation, soft archival of questions preserving
+  historical answers, safe CSV output and updated in-app API documentation.
+- Versioned repeatable migration, separate setup/runtime database privileges,
+  explicit InnoDB baseline and persistent session/worker tables.
+- Updated dependencies: npm audit reports zero known vulnerabilities.
+- Runnable server-side Node client and WordPress plugin client with timeout and
+  response/error handling; caller-side business hooks/retry storage remain the
+  responsibility of the originating website.
+- Database dump helper, ignored backup directory, restore/retention runbook and
+  real isolated backup restoration test. No recurring automation was scheduled.
+
+Verification
+Isolated MariaDB 11.4 server, separate port and generated test databases;
+existing configured database was not migrated or otherwise modified.
+15 tests passed, including 10 database/HTTP integration subtests, a local real
+Nodemailer SMTP handshake test and three validation/security tests, plus their
+parent integration test. Tests verified:
+- migration of legacy users/keys and repeat execution;
+- closed registration, anonymous admin denial, CSRF, login and role revocation;
+- request validation and API source/survey scope;
+- eight concurrent identical requests produce one invitation;
+- conflicting duplicate payloads fail and no-rule retries stay idempotent;
+- configured delay prevents early delivery, email-only recipients persist;
+- transient/permanent SMTP failure states and concurrent worker claims;
+- escaped email markup and unsubscribe links;
+- injected answer-write failure rolls back the response;
+- simultaneous private submissions produce one response and one rejection;
+- question archival preserves historical answers;
+- unsubscribe and suppressed email handling;
+- generic handling of an async database error;
+- Node example over a real local HTTP connection with a separate scoped key;
+- ambiguous/interrupted sending becomes DeliveryUnknown;
+- inactive surveys are not sent, failed invitation retry is protected;
+- compressed database dump restores into a separate empty database.
+No external email was sent. SMTP protocol testing used a local test receiver.
+
+Deployment steps still required
+1. Back up the real database and configure a password-authenticated database user.
+   The existing local connection requested auth_gssapi_client, unsupported by
+   mysql2. Use a dedicated SQL-password account instead of Windows integrated
+   authentication; existing server authentication was left unchanged.
+2. Set a unique session secret and public BASE_URL, run db:migrate, explicitly
+   provision trusted admin accounts, and replace legacy API keys on both sources.
+3. Configure real SMTP credentials and start supervised web and worker processes.
+   Verify actual inbox receipt, HTTPS/proxy behavior and public invitation URLs.
+4. Connect and test the real WordPress business hook and the real Node.js caller.
+   WordPress PHP runtime execution was not available in this verification.
+5. Configure encrypted off-machine backups/retention and monitoring; complete a
+   deployment restore drill. Add shared gateway rate limits before using multiple
+   web instances. Test load against the expected deployment volume.
+
+Readiness: the reviewed code defects have been addressed and isolated automated
+checks pass. Production deployment readiness remains conditional on the above
+environment-specific checks. This change does not deploy or send real surveys.

@@ -15,7 +15,8 @@
           <td>
             <a class="btn btn-sm btn-outline-secondary" href="/admin/surveys/<%= survey.id %>/edit">Edit</a>
             <a class="btn btn-sm btn-outline-secondary" href="/admin/surveys/<%= survey.id %>/questions">Questions</a>
-            <form class="d-inline" method="post" action="/admin/surveys/<%= survey.id %>/delete"><button class="btn btn-sm btn-danger">Archive</button></form>
+            <form class="d-inline" method="post" action="/admin/surveys/<%= survey.id %>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />/delete"><button class="btn btn-sm btn-danger">Archive</button></form>
           </td>
         </tr>
       <% }) %>

@@ -1,0 +1,9 @@
+<div class="card p-4">
+  <h1>Unsubscribe</h1>
+  <p>Stop future survey invitation emails to this address.</p>
+  <form method="post" action="/unsubscribe/<%= token %>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+    <button class="btn btn-primary">Confirm unsubscribe</button>
+  </form>
+</div>

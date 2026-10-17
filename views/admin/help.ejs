@@ -128,7 +128,8 @@
           <h6 class="mt-3">Creating a Client</h6>
           <p><strong>Go to:</strong> Admin → API Clients → Create API Client</p>
           <ul>
-            <li><strong>Client name:</strong> A descriptive name (e.g., "My E-commerce Platform").</li>
+            <li><strong>Client name:</strong> Must exactly match the sourceApp sent by this website.</li>
+            <li><strong>Allowed survey IDs:</strong> Only these surveys can be triggered by this key.</li>
             <li><strong>Status:</strong> Active (can use API) or Disabled (requests rejected).</li>
           </ul>
           
@@ -141,12 +142,13 @@ Authorization: Bearer YOUR_API_KEY
 Content-Type: application/json
 
 {
-  "source_app": "ecommerce_platform",
-  "event_type": "order_completed",
-  "recipient_email": "customer@example.com",
-  "recipient_name": "John Doe",
-  "survey_key": "customer_nps"
+  "eventId": "order_completed:123",
+  "sourceApp": "ecommerce_platform",
+  "eventType": "order_completed",
+  "recipient": { "email": "customer@example.com", "name": "John Doe" },
+  "metadata": { "orderId": 123 }
 }</code></pre>
+          <p>Reuse eventId for retries of the same event. HTTP 202 means accepted; delivery runs in the worker. Check GET /api/events/order_completed%3A123 for delivery status. Monitor Admin → Delivery for failures and worker heartbeat.</p>
         </div>
       </div>
 
@@ -169,7 +171,7 @@ Content-Type: application/json
           <p><strong>Go to:</strong> Admin → Suppression List → Add Suppression</p>
           <ul>
             <li><strong>Email:</strong> The address to suppress.</li>
-            <li><strong>Source app:</strong> Optional. If specified, only suppress for this app. Leave blank to suppress globally.</li>
+            <li><strong>Source app:</strong> Optional context for your records. Suppression applies globally to this email address.</li>
             <li><strong>Reason:</strong> Why it's being suppressed (for your records).</li>
           </ul>
         </div>

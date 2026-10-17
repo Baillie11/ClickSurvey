@@ -3,7 +3,8 @@
   <h5>Add New Question</h5>
   <p class="text-muted small">Build your survey by adding questions below. Questions appear in the order they were added.</p>
   <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
-  <form method="post" action="/admin/surveys/<%= survey.id %>/questions">
+  <form method="post" action="/admin/surveys/<%= survey.id %>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />/questions">
     <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label">Question text <span class="text-danger">*</span></label>
@@ -57,7 +58,8 @@
             <td><%= q.required ? 'Yes' : 'No' %></td>
             <td>
               <a class="btn btn-sm btn-outline-secondary" href="/admin/surveys/<%= survey.id %>/questions/<%= q.id %>/edit">Edit</a>
-              <form class="d-inline" method="post" action="/admin/surveys/<%= survey.id %>/questions/<%= q.id %>/delete"><button class="btn btn-sm btn-danger">Delete</button></form>
+              <form class="d-inline" method="post" action="/admin/surveys/<%= survey.id %>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />/questions/<%= q.id %>/delete"><button class="btn btn-sm btn-danger">Delete</button></form>
             </td>
           </tr>
         <% }) %>

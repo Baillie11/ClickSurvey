@@ -1,4 +1,6 @@
 ClickSurvey readiness review
+Historical review of the original prototype. See REMEDIATION.txt for fixes and
+current verification; the original findings below are retained for traceability.
 Date: 17 October 2026 (Australia/Brisbane)
 Source snapshot: ddbf899
 

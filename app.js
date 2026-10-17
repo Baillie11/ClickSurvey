@@ -1,91 +1,181 @@
-const express = require('express');
-const session = require('express-session');
-const expressLayouts = require('express-ejs-layouts');
-const path = require('path');
-const dotenv = require('dotenv');
-const mysql = require('mysql2/promise');
-const authRoutes = require('./src/routes/auth');
-const adminRoutes = require('./src/routes/admin');
-const surveyRoutes = require('./src/routes/surveys');
-const apiRoutes = require('./src/routes/api');
-const publicRoutes = require('./src/routes/public');
-const { initDb } = require('./src/models/db');
+require("dotenv").config();
+const express = require("express");
+const session = require("express-session");
+const layouts = require("express-ejs-layouts");
+const helmet = require("helmet");
+const { rateLimit } = require("express-rate-limit");
+const path = require("path");
+const { initDb } = require("./src/models/db");
+const { MysqlSessionStore, csrf } = require("./src/security");
 
-dotenv.config();
-
-const app = express();
-const port = process.env.PORT || 3000;
-
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.use(expressLayouts);
-app.set('layout', 'layout');
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { maxAge: 24 * 60 * 60 * 1000 }
-}));
-
-app.use(async (req, res, next) => {
-  if (!global.db) {
-    try {
-      global.db = await initDb();
-    } catch (error) {
-      return next(error);
-    }
-  }
-  next();
-});
-
-app.use((req, res, next) => {
-  res.locals.user = req.session.user;
-  res.locals.baseUrl = process.env.BASE_URL || `http://localhost:${port}`;
-  next();
-});
-
-app.use('/', authRoutes);
-app.use('/admin', adminRoutes);
-app.use('/admin/surveys', surveyRoutes);
-app.use('/api', apiRoutes);
-app.use('/', publicRoutes);
-
-app.use((err, req, res, next) => {
-  console.error('Application error:', err);
-  res.status(500).send(`Server error: ${err.message}`);
-});
-
-app.use((req, res) => {
-  res.status(404).render('404', { title: 'Not Found' });
-});
-
-const basePort = process.env.PORT && process.env.PORT.trim() ? parseInt(process.env.PORT, 10) : 3000;
-const fallbackPort = 3001;
-
-function startServer(portToUse, isRetry = false) {
-  const server = app.listen(portToUse, () => {
-    console.log(`ClickSurvey running on http://localhost:${portToUse}`);
-  });
-
-  server.on('error', (error) => {
-    if (error.code === 'EADDRINUSE') {
-      console.error(`Port ${portToUse} is already in use.`);
-      if (!isRetry && portToUse === basePort) {
-        console.log(`Trying fallback port ${fallbackPort}...`);
-        startServer(fallbackPort, true);
-      } else {
-        console.error('Please free the port or set PORT in your environment.');
-        process.exit(1);
-      }
-    } else {
-      console.error('Server startup error:', error);
-      process.exit(1);
-    }
-  });
+function validateConfig() {
+  if (
+    !process.env.SESSION_SECRET ||
+    process.env.SESSION_SECRET.length < 32 ||
+    /^(secret|your-session-secret)$/.test(process.env.SESSION_SECRET)
+  )
+    throw new Error(
+      "SESSION_SECRET must be a unique secret of at least 32 characters",
+    );
+  const url = new URL(process.env.BASE_URL || "http://localhost:3000");
+  if (process.env.NODE_ENV === "production" && url.protocol !== "https:")
+    throw new Error("Production BASE_URL must use HTTPS");
+  if (
+    !["http:", "https:"].includes(url.protocol) ||
+    url.username ||
+    url.password
+  )
+    throw new Error("Invalid BASE_URL");
+  if (url.pathname !== "/" || url.search || url.hash)
+    throw new Error(
+      "BASE_URL must be an origin without a path, query or fragment",
+    );
+  if (
+    process.env.TRUST_PROXY_HOPS &&
+    !/^[1-9]\d?$/.test(process.env.TRUST_PROXY_HOPS)
+  )
+    throw new Error("TRUST_PROXY_HOPS must be an explicit positive hop count");
+  if (
+    !/^\d+$/.test(process.env.PORT || "3000") ||
+    Number(process.env.PORT || 3000) < 1 ||
+    Number(process.env.PORT || 3000) > 65535
+  )
+    throw new Error("Invalid PORT");
 }
-
-startServer(basePort);
+function createApp(db, options = {}) {
+  global.db = db;
+  const app = express();
+  app.disable("x-powered-by");
+  if (process.env.TRUST_PROXY_HOPS)
+    app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS));
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          "script-src": ["'self'", "https://cdn.jsdelivr.net"],
+          "style-src": [
+            "'self'",
+            "'unsafe-inline'",
+            "https://cdn.jsdelivr.net",
+          ],
+          "img-src": ["'self'", "https:", "data:"],
+          "upgrade-insecure-requests":
+            process.env.NODE_ENV === "production" ? [] : null,
+        },
+      },
+    }),
+  );
+  app.get("/health", (req, res) => res.json({ status: "ok" }));
+  app.get("/ready", async (req, res) => {
+    try {
+      const [[worker]] = await db.query(
+        "SELECT heartbeat_at > DATE_SUB(UTC_TIMESTAMP(),INTERVAL 2 MINUTE) AS healthy FROM worker_state WHERE id=1",
+      );
+      res
+        .status(worker?.healthy ? 200 : 503)
+        .json({ status: worker?.healthy ? "ready" : "worker_unavailable" });
+    } catch {
+      res.status(503).json({ status: "unavailable" });
+    }
+  });
+  app.use(express.static(path.join(__dirname, "public")));
+  app.use(
+    express.urlencoded({ extended: false, limit: "64kb", parameterLimit: 500 }),
+  );
+  app.use(express.json({ limit: "32kb" }));
+  app.use(
+    "/api",
+    rateLimit({
+      windowMs: 60000,
+      limit: 120,
+      standardHeaders: "draft-8",
+      legacyHeaders: false,
+    }),
+    require("./src/routes/api"),
+  );
+  app.use(
+    session({
+      name: "clicksurvey.sid",
+      secret: options.sessionSecret || process.env.SESSION_SECRET,
+      store: options.sessionStore || new MysqlSessionStore(db),
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 86400000,
+      },
+    }),
+  );
+  app.use((req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    res.locals.user = req.session.user;
+    res.locals.baseUrl = process.env.BASE_URL || "http://localhost:3000";
+    next();
+  });
+  app.use(csrf);
+  app.set("view engine", "ejs");
+  app.set("views", path.join(__dirname, "views"));
+  app.use(layouts);
+  app.set("layout", "layout");
+  app.use("/", require("./src/routes/auth"));
+  app.use("/admin", require("./src/routes/admin"));
+  app.use("/admin/surveys", require("./src/routes/surveys"));
+  app.use(
+    "/",
+    rateLimit({
+      windowMs: 60000,
+      limit: 120,
+      standardHeaders: "draft-8",
+      legacyHeaders: false,
+    }),
+    require("./src/routes/public"),
+  );
+  app.use((req, res) => res.status(404).render("404", { title: "Not found" }));
+  app.use((error, req, res, next) => {
+    if (res.headersSent) return next(error);
+    const status =
+      error.status >= 400 && error.status < 500
+        ? error.status
+        : error.code === "ER_DUP_ENTRY"
+          ? 409
+          : 500;
+    if (status === 500)
+      console.error("Request failed:", error.code || error.name);
+    const message =
+      status === 500
+        ? "Internal server error"
+        : status === 409
+          ? "Record already exists"
+          : error.type === "entity.parse.failed"
+            ? "Invalid JSON"
+            : error.message;
+    if (req.path.startsWith("/api"))
+      return res.status(status).json({ success: false, error: message });
+    res.status(status).type("text").send(message);
+  });
+  return app;
+}
+async function start() {
+  validateConfig();
+  const db = await initDb();
+  const app = createApp(db);
+  const server = app.listen(Number(process.env.PORT || 3000), () =>
+    console.log("ClickSurvey started"),
+  );
+  server.on("error", (error) => {
+    console.error("Server startup failed:", error.code);
+    process.exitCode = 1;
+    db.end();
+  });
+  const stop = () => server.close(() => db.end().then(() => process.exit(0)));
+  process.on("SIGTERM", stop);
+  process.on("SIGINT", stop);
+}
+if (require.main === module)
+  start().catch((error) => {
+    console.error("Startup failed:", error.message);
+    process.exitCode = 1;
+  });
+module.exports = { createApp, validateConfig };

@@ -1,103 +1,134 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
-const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const express = require("express");
+const crypto = require("crypto");
+const bcrypt = require("bcrypt");
+const { eventInput, bad } = require("../validation");
+const { transaction } = require("../models/db");
 const router = express.Router();
-
-async function verifyApiKey(rawKey) {
-  const [clients] = await global.db.execute('SELECT * FROM api_clients WHERE status = ?', ['Active']);
-  for (const client of clients) {
-    const match = await bcrypt.compare(rawKey, client.api_key_hash);
-    if (match) return client;
-  }
-  return null;
+function canonical(value) {
+  if (Array.isArray(value)) return "[" + value.map(canonical).join(",") + "]";
+  if (value && typeof value === "object")
+    return (
+      "{" +
+      Object.keys(value)
+        .sort()
+        .map((k) => JSON.stringify(k) + ":" + canonical(value[k]))
+        .join(",") +
+      "}"
+    );
+  return JSON.stringify(value);
 }
-
-async function createInvite(event, rule) {
-  const inviteToken = crypto.randomBytes(16).toString('hex');
-  const status = 'Pending';
-  await global.db.execute(
-    'INSERT INTO survey_invites (survey_id, recipient_name, recipient_email, source_app, event_type, metadata_json, invite_token, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
-    [rule.survey_id, event.recipient.name, event.recipient.email, event.sourceApp, event.eventType, JSON.stringify(event.metadata || {}), inviteToken, status]
+async function authenticate(req, res, next) {
+  const match = /^Bearer (cs_([a-f0-9]{24})_[a-f0-9]{40})$/.exec(
+    req.get("Authorization") || "",
   );
-  const [rows] = await global.db.execute('SELECT LAST_INSERT_ID() AS id');
-  return { id: rows[0].id, inviteToken };
+  if (!match) throw bad("Invalid or missing API key", 401);
+  const [rows] = await global.db.execute(
+    "SELECT * FROM api_clients WHERE key_id = ? AND status = 'Active'",
+    [match[2]],
+  );
+  if (!rows[0] || !(await bcrypt.compare(match[1], rows[0].api_key_hash)))
+    throw bad("Invalid or missing API key", 401);
+  req.apiClient = rows[0];
+  next();
 }
-
-async function sendInviteEmail(inviteId) {
-  const [rows] = await global.db.execute('SELECT si.*, s.title as survey_title, s.thank_you_message, s.brand_name, s.logo_url, s.primary_colour FROM survey_invites si LEFT JOIN surveys s ON si.survey_id = s.id WHERE si.id = ?', [inviteId]);
-  const invite = rows[0];
-  if (!invite) return;
-  const suppression = await global.db.execute('SELECT id FROM suppressions WHERE email = ?', [invite.recipient_email]);
-  if (suppression[0].length) {
-    await global.db.execute('UPDATE survey_invites SET status = ?, updated_at = NOW() WHERE id = ?', ['Suppressed', inviteId]);
-    return;
-  }
-
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT, 10) || 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
+router.use(authenticate);
+router.post("/events", async (req, res) => {
+  if (!req.is("application/json"))
+    throw bad("Content-Type must be application/json", 415);
+  const event = eventInput(req.body, req.get("Idempotency-Key"));
+  const client = req.apiClient;
+  if (client.client_name !== event.sourceApp)
+    throw bad("API key cannot use this sourceApp", 403);
+  const hash = crypto
+    .createHash("sha256")
+    .update(canonical(event))
+    .digest("hex");
+  const result = await transaction(global.db, async (db) => {
+    let insert;
+    try {
+      [insert] = await db.execute(
+        "INSERT INTO events (api_client_id,event_key,payload_hash,source_app,event_type,recipient_name,recipient_email,metadata_json,received_at) VALUES (?,?,?,?,?,?,?,?,UTC_TIMESTAMP())",
+        [
+          client.id,
+          event.eventId,
+          hash,
+          event.sourceApp,
+          event.eventType,
+          event.recipient.name,
+          event.recipient.email,
+          JSON.stringify(event.metadata),
+        ],
+      );
+    } catch (error) {
+      if (error.code !== "ER_DUP_ENTRY") throw error;
+      const [[saved]] = await db.execute(
+        "SELECT * FROM events WHERE api_client_id = ? AND event_key = ? FOR UPDATE",
+        [client.id, event.eventId],
+      );
+      if (saved.payload_hash !== hash)
+        throw bad("Event ID already used with different data", 409);
+      return {
+        eventId: event.eventId,
+        inviteId: saved.invite_id || null,
+        duplicate: true,
+      };
     }
+    const [rules] = await db.execute(
+      "SELECT ar.* FROM automation_rules ar JOIN surveys s ON s.id=ar.survey_id WHERE ar.source_app = ? AND ar.event_type = ? AND ar.status = 'Active' AND s.status = 'Active' ORDER BY ar.id DESC LIMIT 1",
+      [event.sourceApp, event.eventType],
+    );
+    if (!rules.length)
+      return { eventId: event.eventId, inviteId: null, duplicate: false };
+    const rule = rules[0];
+    const allowed = JSON.parse(client.allowed_surveys_json || "[]");
+    if (!Array.isArray(allowed) || !allowed.includes(rule.survey_id))
+      throw bad("API key cannot trigger this survey", 403);
+    const [invite] = await db.execute(
+      "INSERT INTO survey_invites (survey_id,recipient_name,recipient_email,source_app,event_type,metadata_json,invite_token,status,due_at,expires_at,created_at,updated_at) VALUES (?,?,?,?,?,?,?,'Pending',DATE_ADD(UTC_TIMESTAMP(),INTERVAL ? MINUTE),DATE_ADD(DATE_ADD(UTC_TIMESTAMP(),INTERVAL ? MINUTE),INTERVAL 30 DAY),UTC_TIMESTAMP(),UTC_TIMESTAMP())",
+      [
+        rule.survey_id,
+        event.recipient.name,
+        event.recipient.email,
+        event.sourceApp,
+        event.eventType,
+        JSON.stringify(event.metadata),
+        crypto.randomBytes(32).toString("hex"),
+        rule.delay_minutes,
+        rule.delay_minutes,
+      ],
+    );
+    await db.execute("UPDATE events SET invite_id = ? WHERE id = ?", [
+      invite.insertId,
+      insert.insertId,
+    ]);
+    return {
+      eventId: event.eventId,
+      inviteId: invite.insertId,
+      duplicate: false,
+    };
   });
-
-  const surveyUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/r/${invite.invite_token}`;
-  const html = `<p>Hi ${invite.recipient_name || 'there'},</p>
-    <p>We’d love your feedback on <strong>${invite.survey_title}</strong>.</p>
-    <p><a href="${surveyUrl}" style="display:inline-block;padding:12px 18px;background-color:#0d6efd;color:#fff;text-decoration:none;border-radius:4px;">Complete your survey</a></p>
-    <p>Thanks,<br>${invite.source_app}</p>
-    <p style="font-size:0.9em;color:#666;">If you don’t want future surveys, you can reply with STOP.</p>`;
-
-  try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
-      to: invite.recipient_email,
-      subject: `Quick feedback about your ${invite.source_app} experience`,
-      html
+  res
+    .status(result.duplicate ? 200 : 202)
+    .json({
+      success: true,
+      ...result,
+      inviteCreated: !!result.inviteId,
+      deliveryStatus: result.inviteId
+        ? "queued; query event status for delivery"
+        : "no_matching_rule",
     });
-    await global.db.execute('UPDATE survey_invites SET status = ?, sent_at = NOW(), updated_at = NOW() WHERE id = ?', ['Sent', inviteId]);
-  } catch (error) {
-    await global.db.execute('UPDATE survey_invites SET status = ?, updated_at = NOW() WHERE id = ?', ['Failed', inviteId]);
-  }
-}
-
-router.post('/events', async (req, res) => {
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.replace(/^Bearer\s+/i, '');
-  if (!token) {
-    return res.status(401).json({ success: false, error: 'Missing API key' });
-  }
-  const client = await verifyApiKey(token);
-  if (!client) {
-    return res.status(401).json({ success: false, error: 'Invalid API key' });
-  }
-
-  const { sourceApp, eventType, recipient, metadata } = req.body;
-  if (!sourceApp || !eventType || !recipient || !recipient.email) {
-    return res.status(400).json({ success: false, error: 'sourceApp, eventType, and recipient email are required' });
-  }
-
-  await global.db.execute(
-    'INSERT INTO events (api_client_id, source_app, event_type, recipient_name, recipient_email, metadata_json, received_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
-    [client.id, sourceApp, eventType, recipient.name || null, recipient.email, JSON.stringify(metadata || {})]
-  );
-
-  const [rules] = await global.db.execute(
-    'SELECT * FROM automation_rules WHERE source_app = ? AND event_type = ? AND status = ? ORDER BY id DESC LIMIT 1',
-    [sourceApp, eventType, 'Active']
-  );
-  if (!rules.length) {
-    return res.json({ success: true, message: 'Event received, no matching automation rule', inviteCreated: false });
-  }
-
-  const rule = rules[0];
-  const invite = await createInvite(req.body, rule);
-  await sendInviteEmail(invite.id);
-
-  res.json({ success: true, message: 'Event received and survey invitation created', inviteCreated: true });
 });
-
+router.get("/events/:eventId", async (req, res) => {
+  const [rows] = await global.db.execute(
+    "SELECT e.event_key AS eventId, e.invite_id AS inviteId, si.status AS deliveryStatus, si.attempts, si.sent_at AS sentAt, si.due_at AS dueAt FROM events e LEFT JOIN survey_invites si ON si.id=e.invite_id WHERE e.api_client_id = ? AND e.event_key = ?",
+    [req.apiClient.id, req.params.eventId],
+  );
+  if (!rows.length) throw bad("Event not found", 404);
+  res.json({
+    success: true,
+    ...rows[0],
+    deliveryStatus: rows[0].deliveryStatus || "no_matching_rule",
+  });
+});
 module.exports = router;
+module.exports.canonical = canonical;

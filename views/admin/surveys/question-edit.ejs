@@ -1,7 +1,8 @@
 <div class="card p-4">
   <h1>Edit Question</h1>
   <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
-  <form method="post" action="/admin/surveys/<%= survey.id %>/questions/<%= question.id %>">
+  <form method="post" action="/admin/surveys/<%= survey.id %>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />/questions/<%= question.id %>">
     <div class="mb-3"><label class="form-label">Question text</label><input name="question_text" class="form-control" value="<%= question.question_text %>" required /></div>
     <div class="mb-3"><label class="form-label">Type</label><select name="question_type" class="form-select" required>
       <option value="short_text" <%= question.question_type==='short_text' ? 'selected' : '' %>>Short text</option>

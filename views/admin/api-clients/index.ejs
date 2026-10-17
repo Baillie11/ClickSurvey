@@ -6,11 +6,12 @@
   <p class="text-muted small">API clients allow external applications to trigger surveys and create invites via the ClickSurvey API. Each client gets a unique API key.</p>
   <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
   <form method="post" action="/admin/api-clients">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <div class="row g-3">
       <div class="col-md-8">
         <label class="form-label">Client name <span class="text-danger">*</span></label>
         <input name="client_name" class="form-control" placeholder="e.g., My Ecommerce Platform" required />
-        <small class="form-text text-muted">A descriptive name for this API client (e.g., your app or partner name).</small>
+        <small class="form-text text-muted">Must exactly match sourceApp in API events.</small>
       </div>
       <div class="col-md-4">
         <label class="form-label">Status</label>
@@ -20,6 +21,7 @@
         </select>
         <small class="form-text text-muted"><strong>Active:</strong> Can use API. <strong>Disabled:</strong> Requests will be rejected.</small>
       </div>
+      <div class="col-12"><label class="form-label">Allowed survey IDs (comma separated)</label><input name="allowed_surveys" class="form-control" placeholder="1, 2" required /><small>Find survey IDs in the survey edit links. This key can trigger only these surveys.</small></div>
       <div class="col-12"><button class="btn btn-primary">Create API Client</button></div>
     </div>
   </form>
@@ -43,7 +45,8 @@
             <td><span class="badge <%= client.status === 'Active' ? 'bg-success' : 'bg-secondary' %>"><%= client.status %></span></td>
             <td><%= new Date(client.created_at).toLocaleDateString() %></td>
             <td>
-              <form method="post" action="/admin/api-clients/<%= client.id %>/toggle" class="d-inline">
+              <form method="post" action="/admin/api-clients/<%= client.id %>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />/toggle" class="d-inline">
                 <button class="btn btn-sm btn-outline-secondary"><%= client.status === 'Active' ? 'Disable' : 'Enable' %></button>
               </form>
             </td>

@@ -1,61 +1,69 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
+const express = require("express");
+const bcrypt = require("bcrypt");
+const { rateLimit } = require("express-rate-limit");
+const { email } = require("../validation");
 const router = express.Router();
-
-function requireGuest(req, res, next) {
-  if (req.session.user) return res.redirect('/admin');
-  next();
-}
-
-router.get('/register', requireGuest, (req, res) => {
-  res.render('auth/register', { title: 'Register', error: null });
-});
-
-router.post('/register', requireGuest, async (req, res) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password) {
-    return res.render('auth/register', { title: 'Register', error: 'All fields are required.' });
-  }
-
-  const [existing] = await global.db.execute('SELECT id FROM users WHERE email = ?', [email]);
-  if (existing.length) {
-    return res.render('auth/register', { title: 'Register', error: 'Email already registered.' });
-  }
-
-  const password_hash = await bcrypt.hash(password, 10);
-  await global.db.execute(
-    'INSERT INTO users (name, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
-    [name, email, password_hash]
+router.all("/register", (req, res) => res.status(404).send("Not found"));
+router.get("/login", (req, res) =>
+  req.session.user
+    ? res.redirect("/admin")
+    : res.render("auth/login", { title: "Login", error: null }),
+);
+router.post(
+  "/login",
+  rateLimit({
+    windowMs: 15 * 60000,
+    limit: 10,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+  }),
+  async (req, res) => {
+    let address;
+    try {
+      address = email(req.body.email);
+    } catch {
+      return res
+        .status(400)
+        .render("auth/login", {
+          title: "Login",
+          error: "Invalid email or password.",
+        });
+    }
+    const password = req.body.password;
+    if (typeof password !== "string" || Buffer.byteLength(password) > 72)
+      return res
+        .status(400)
+        .render("auth/login", {
+          title: "Login",
+          error: "Invalid email or password.",
+        });
+    const [users] = await global.db.execute(
+      "SELECT * FROM users WHERE email = ? AND is_admin = 1",
+      [address],
+    );
+    const user = users[0];
+    if (!user || !(await bcrypt.compare(password, user.password_hash)))
+      return res
+        .status(401)
+        .render("auth/login", {
+          title: "Login",
+          error: "Invalid email or password.",
+        });
+    await new Promise((resolve, reject) =>
+      req.session.regenerate((e) => (e ? reject(e) : resolve())),
+    );
+    req.session.user = { id: user.id, name: user.name, email: user.email };
+    await new Promise((resolve, reject) =>
+      req.session.save((e) => (e ? reject(e) : resolve())),
+    );
+    res.redirect("/admin");
+  },
+);
+router.post("/logout", async (req, res) => {
+  await new Promise((resolve, reject) =>
+    req.session.destroy((e) => (e ? reject(e) : resolve())),
   );
-
-  res.redirect('/login');
+  res.clearCookie("clicksurvey.sid");
+  res.redirect("/login");
 });
-
-router.get('/login', requireGuest, (req, res) => {
-  res.render('auth/login', { title: 'Login', error: null });
-});
-
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  const [rows] = await global.db.execute('SELECT * FROM users WHERE email = ?', [email]);
-  const user = rows[0];
-  if (!user) {
-    return res.render('auth/login', { title: 'Login', error: 'Invalid email or password.' });
-  }
-
-  const valid = await bcrypt.compare(password, user.password_hash);
-  if (!valid) {
-    return res.render('auth/login', { title: 'Login', error: 'Invalid email or password.' });
-  }
-
-  req.session.user = { id: user.id, name: user.name, email: user.email };
-  res.redirect('/admin');
-});
-
-router.post('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.redirect('/login');
-  });
-});
-
 module.exports = router;

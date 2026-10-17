@@ -18,8 +18,10 @@
         <ul class="navbar-nav ms-auto">
           <% if (user) { %>
             <li class="nav-item"><a class="nav-link" href="/admin">Dashboard</a></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/delivery">Delivery</a></li>
             <li class="nav-item"><a class="nav-link" href="/admin/help">❓ Help</a></li>
-            <li class="nav-item"><form method="post" action="/logout"><button class="btn btn-link nav-link">Logout</button></form></li>
+            <li class="nav-item"><form method="post" action="/logout">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" /><button class="btn btn-link nav-link">Logout</button></form></li>
           <% } else { %>
             <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
           <% } %>
