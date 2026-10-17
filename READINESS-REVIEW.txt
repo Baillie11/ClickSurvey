@@ -1,0 +1,171 @@
+ClickSurvey readiness review
+Date: 17 October 2026 (Australia/Brisbane)
+Source snapshot: ddbf899
+
+VERDICT
+Not ready for production. The architecture supports WordPress and Node.js
+server-to-server survey requests, but security, reliability and data integrity
+issues must be resolved before exposing it publicly or using real recipients.
+This review does not change application behavior.
+
+BACKUP
+Source, lockfile, templates and database schema backed up to:
+https://github.com/Baillie11/ClickSurvey
+Branch: main. Original backup commit: ddbf899.
+.gitignore added to exclude .env, node_modules and generated logs.
+The local .env remains local. GitHub does not contain database contents,
+SMTP credentials or a database backup. Restore dependencies with npm ci and
+configure secrets separately. schema.sql restores structure, not existing data.
+
+INTEGRATION COMPATIBILITY
+Both stacks can POST JSON to https://YOUR-HOST/api/events with:
+Content-Type: application/json
+Authorization: Bearer YOUR_SERVER_SIDE_KEY
+
+Example payload:
+{"sourceApp":"Puzzle Path","eventType":"hunt_completed","recipient":{"name":"Test Customer","email":"test@example.com"},"metadata":{"bookingId":"123"}}
+
+Create an API client, an Active survey with questions, and an Active automation
+rule matching sourceApp and eventType exactly. The newest matching rule wins;
+the API does not accept a survey ID for direct selection or run all matches.
+WordPress: invoke wp_remote_post from the relevant plugin/business event hook,
+encode with wp_json_encode, check is_wp_error, the response HTTP status and JSON.
+Node.js: invoke fetch from the server, check status and JSON and set a timeout.
+README includes illustrative snippets for both. These are not installed plugins
+or complete integrations: actual business hooks, secrets, logging and recovery
+still need implementation in the calling websites.
+Keep keys on the server. Browser clients should call their own backend; exposing
+the bearer key in browser JavaScript would give visitors the same API access.
+Server-to-server calls do not require CORS. HTTPS and outbound connectivity are
+required in deployment. WordPress authorization-header forwarding must work.
+Do not enable automatic event retries until idempotency is implemented.
+Current success=true means an event/invite was processed, not successful delivery.
+No rule returns HTTP 200 with inviteCreated=false, so callers must inspect JSON.
+
+LAUNCH BLOCKERS, IN PRIORITY ORDER
+
+1. Critical: public registration grants unrestricted administration.
+   src/routes/auth.js exposes GET/POST /register to unauthenticated visitors.
+   All registered users pass requireAuth in admin.js and surveys.js. Queries
+   do not scope surveys, responses, keys, or suppressions to an owner or role.
+   A stranger can register, access recipient data, edit surveys, and create keys.
+   Disable public registration, provision administrators explicitly, and enforce
+   roles/ownership. Decide whether this is one trusted admin team or multi-tenant.
+
+2. Critical: predictable bootstrap account and weak session defaults.
+   src/models/db.js seeds a hardcoded administrator password on an empty users
+   table. app.js falls back to the literal session secret 'secret'. Replace
+   bootstrap credentials with controlled provisioning; rotate any existing seeded
+   account. Require secrets, regenerate sessions on login, use secure cookies and
+   a production session store. Current MemoryStore loses sessions on restart and
+   does not support multiple instances. Add login/API abuse controls and CSRF
+   protection for authenticated mutations. No such controls appear in the app.
+
+3. High: database and route failures are not reliably contained.
+   Async Express 4 handlers generally lack try/catch(next) or an async wrapper.
+   Rejected queries can escape the error middleware and terminate the process.
+   The error handler also exposes err.message to callers. Return generic JSON
+   API errors and log details privately; forward async errors consistently.
+
+4. High: IDs can attach records to the wrong invite/response under concurrency.
+   api.js and public.js INSERT through a pool, then separately SELECT
+   LAST_INSERT_ID(). This value belongs to a connection, while subsequent pool
+   calls can use another connection. Use the INSERT result's insertId.
+   Use transactions on one checked-out connection for response/answer writes and
+   event/invite creation so failures cannot leave partial records.
+
+5. High: integration validation is incomplete.
+   recipient.name is treated as optional when storing an event, then passed as
+   undefined when creating an invite. mysql2 rejects undefined bind values.
+   Email-only requests can therefore record an event and fail before replying.
+   Validate types, email, lengths, metadata, event names and supported content
+   types; normalize missing optional values. Reject malformed input with 400.
+   Escape external strings interpolated into email HTML.
+
+6. High: API credentials do not constrain the requested source/survey.
+   api.js authenticates an Active key but trusts any supplied sourceApp and
+   never enforces allowed_surveys_json. Any active client can trigger another
+   source's matching rule. Bind credentials to permitted sources and surveys.
+   Generate keys with crypto.randomBytes; admin.js currently uses Math.random.
+   Key authentication also bcrypt-compares every Active client's hash per request,
+   which scales poorly and increases abuse costs. Use indexed key identifiers.
+
+7. High: invitation delivery lacks durable processing and deduplication.
+   delay_minutes is stored but ignored. SMTP runs synchronously in the request.
+   There is no event ID/idempotency constraint, durable worker, retry/backoff,
+   or failed-invite resend flow. A timeout followed by a retry creates duplicates.
+   SMTP failure sets Failed but the caller still receives success=true.
+   Introduce an event ID unique per client, a transactional outbox/queue and
+   worker, scheduled delivery, observable failures and delivery status reporting.
+   Configure SMTP TLS for the actual provider (secure:false is fixed currently).
+
+8. High: invite completion and survey state are not enforced.
+   public.js permits submission for a Completed invite and does not require an
+   Active survey for private invites. There is no expiry, single-use database
+   guarantee or concurrency guard. Repeated posts can create repeated responses.
+   Enforce status/expiry, atomic completion and a unique private invite response.
+   Only Pending invitations record an open, although sent emails have Sent status.
+   Server-side answer validation checks presence only; enforce types, lengths,
+   numeric ranges, allowed choices and meaningful required values.
+
+9. High: dependency audit requires remediation and verification.
+   npm audit reported 10 affected dependency entries: 2 critical, 4 high,
+   4 moderate. Critical entries were proxy-addr and tar; high entries included
+   Nodemailer and bcrypt's installation dependency chain. Counts include
+   transitive packages and do not prove every advisory is remotely exploitable
+   in this configuration. Upgrade affected packages, review major-version
+   changes, and rerun audit and integration checks. No automatic upgrades applied.
+
+ADDITIONAL OPERATIONAL GAPS
+- Email says 'reply with STOP', but no inbound email/unsubscribe handler exists.
+  Suppression is manual through admin. Add a working opt-out path and demonstrate
+  it suppresses subsequent deliveries. No legal compliance assessment performed.
+- CSV export quotes fields but does not neutralize spreadsheet formula prefixes.
+- Invalid options_json can break survey rendering. Validate builder inputs.
+- Deleting questions with existing answers can fail on foreign key constraints.
+- No migration framework; ensureSchema only initializes an entirely empty schema.
+- Startup requires CREATE DATABASE privileges; use a separate setup/migration user
+  and a restricted runtime database account for managed hosting.
+- No health/readiness endpoint, durable job monitoring or automated test script.
+- npm run dev references nodemon, which is not declared as a dependency.
+- No automatic database backup/restore, retention or deployment runbook verified.
+
+VERIFICATION PERFORMED
+- Git push succeeded; main configured to track origin/main.
+- node --check passed all seven application JavaScript files.
+- All 20 EJS templates compiled successfully (syntax only, not browser rendering).
+- Direct API handler checks with mocked DB/SMTP confirmed: missing/invalid key
+  returns 401; missing required fields returns 400; no matching rule acknowledges
+  without an invite; a configured 60-minute delay still sends immediately;
+  client survey restrictions and source identity are ignored; repeated events
+  create repeated invitations; SMTP failure returns success; missing recipient
+  name reaches an undefined bind; malformed email is accepted.
+- Direct private-response handler check with a mocked DB confirmed a Completed
+  invite still accepts another response.
+- npm audit completed with the findings above.
+Mocks verify code paths, not live database semantics or real email delivery.
+No production database was modified and no real emails were sent by these checks.
+No live WordPress/Node caller, MySQL setup, browser flow, SMTP delivery,
+concurrency/load test, deployment, or backup restoration was verified.
+
+RELEASE ACCEPTANCE CHECKS
+After fixing blockers, use staging and test recipients to demonstrate:
+1. Anonymous registration is disabled and unauthorized admin/data access fails.
+2. WordPress and Node.js each send a real authenticated event that creates exactly
+   one invite for the correct Active survey and source.
+3. Email-only recipients work; invalid data yields stable 400 JSON; invalid and
+   cross-source keys fail; database failures yield controlled errors.
+4. A retry of the same event produces no extra email or invitation.
+5. Delays are honored; an SMTP outage recovers via a durable retry and reports
+   actual delivery state; a restart loses no accepted work.
+6. Survey responses survive concurrent requests, attach to the correct records,
+   validate answers and allow one completion per private invite.
+7. Opt-out, expired/completed invites, disabled surveys and CSV export behave
+   correctly; dependency findings are resolved or explicitly risk-assessed.
+8. HTTPS, secrets, database permissions, monitoring and restore are verified.
+
+REFERENCE DOCUMENTATION
+WordPress HTTP POST:
+https://developer.wordpress.org/reference/functions/wp_remote_post/
+Express 4 asynchronous error handling:
+https://expressjs.com/en/4x/guide/error-handling/
