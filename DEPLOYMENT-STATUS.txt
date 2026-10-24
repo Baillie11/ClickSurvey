@@ -37,8 +37,18 @@ Ready for configuration and use
 - Customer feedback - starter survey is left Draft, with two questions and
   clearly labelled deployment-test responses. Activate it or create a survey.
 - Deployment-test API keys are Disabled and automation rules Inactive.
-- Create production clients/rules and connect the actual purchase/completion
-  hooks on each originating website. No business-specific customer trigger was
-  installed automatically during verification.
+- Puzzle Path and VitaePro now have separate Active scoped production clients,
+  Active feedback surveys and Active automation rules. See integrations/SETUP.txt.
+- Puzzle Path's WordPress queue is collected each minute using authenticated
+  HTTPS from VentraIP, because OrangeHost's outbound connection to VentraIP
+  times out. The collector was verified through the scheduled cron, persisted
+  acknowledgement and receipt of the invitation in the approved test mailbox.
+- VitaePro's first-cover-letter trigger and minute worker are enabled. Existing
+  consent/active-account checks remain enforced. Real API submission and its
+  deduplicated replay passed; the invitation arrived in the test mailbox.
+- Only new activity after activation is eligible. Production invitations have
+  a 60-minute delay. Test delivery alone was expedited for the approved recipient.
+- Four additional integration tests passed using isolated MariaDB/PHP fixtures
+  and simulated transport failures. No real customer events were manufactured.
 - Continue reviewing delivery failures, capacity and backups. Live acceptance
   checks establish functionality; they are not a high-volume load test.

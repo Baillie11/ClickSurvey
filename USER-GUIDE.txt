@@ -242,3 +242,35 @@ OPERATOR SETUP AND RECOVERY
 See README.md for migrations, admin provisioning, SMTP/TLS, proxy settings,
 backup/restore and deployment checks. LIVE-OPERATIONS.txt records this host's
 watchdogs and backup schedule. Secrets do not belong in this guide.
+
+14. YOUR CONNECTED WEBSITES (24 OCTOBER 2026)
+Puzzle Path: automatic requests are enabled for newly completed, paid quests.
+The booking's authoritative Quest Progress must show completed. A secure collector
+checks the WordPress queue each minute, including when the site has no visitors.
+At most one invitation is queued per customer email address within 30 days.
+Old completions are excluded. Settings and queue counts are at:
+https://puzzlepath.com.au/wp-admin/options-general.php?page=puzzlepath-clicksurvey
+Uncheck Automatic requests and Save connection to pause collection and new work.
+
+VitaePro: the first eligible successful cover-letter export after activation
+queues feedback once per customer. The account must be active and have opted in
+to optional email communications; unsubscribed/suppressed accounts are excluded.
+The existing registration and account-preferences consent controls are retained.
+Consent is not assumed for existing accounts. A scheduled worker runs each minute.
+Other VitaePro triggers remain disabled. The connector also enforces a 30-day cap.
+
+Each site has its own API key, restricted to its own source and feedback survey.
+Keys are stored only on the servers and in the ignored private operator backup.
+They are never placed in browser-side JavaScript or committed to GitHub.
+Both feedback surveys contain a five-star rating and an optional comment.
+The Active automation rules delay invitations by 60 minutes after queue acceptance.
+Allow additional time for collection and mail delivery. Check Delivery for actual
+status, and Surveys/Responses for answers. Edit the surveys in ClickSurvey admin.
+The current Automation screen creates rules; changing an existing rule's delay or
+status requires the operator. The original starter survey remains Draft.
+
+Pausing an automation rule stops creation of new invitations; already queued
+invitations can still be delivered. Pausing a source connector also leaves any
+invitations already accepted by ClickSurvey in its delivery queue. Consult the
+operator if already accepted invitations must be cancelled.
+Full connector operation, recovery and key rotation: integrations/SETUP.txt.
