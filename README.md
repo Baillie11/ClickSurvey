@@ -2,15 +2,19 @@
 
 Event-triggered surveys for WordPress, Node.js and other servers that can POST JSON over HTTPS. This installation serves **one trusted administration team**; administrators can access all surveys and responses. It is not a tenant-isolated SaaS product.
 
+## Using ClickSurvey
+
+Read [the user guide](USER-GUIDE.txt) for step-by-step survey creation, invitations, WordPress/Node.js setup, delivery monitoring and exports. It is also available through Help in the app, with a download button.
+
 ## Requirements and setup
 
 - Node.js 20.20 or newer; MySQL 8+ or MariaDB 10.6+ with InnoDB and `SKIP LOCKED` support.
 - An existing empty database for a new installation, or a backed-up existing ClickSurvey database.
-- An SMTP account and a public HTTPS origin for production.
+- An SMTP account and a public HTTPS installation URL for production.
 
 1. Run `npm ci` and copy `.env.example` to `.env`.
 2. Set database credentials. Use a password-authenticated database account supported by mysql2, not Windows GSSAPI/integrated authentication. The runtime does not create databases. A database administrator creates the database and grants the migration user schema modification permissions first.
-3. Generate `SESSION_SECRET` with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Set `BASE_URL` to your public origin, with no path. Configure SMTP and `EMAIL_FROM`.
+3. Generate `SESSION_SECRET` with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Set `BASE_URL` to your full public installation URL, including its subdirectory when used (for example `https://clickecommerce.com.au/clicksurvey`). Configure SMTP and `EMAIL_FROM`.
 4. Back up existing data, then run `npm run db:migrate`. The migration is repeatable and records its version. Run with a migration account, then switch to the restricted runtime account.
 5. Set `ADMIN_EMAIL`, `ADMIN_NAME`, and a unique `ADMIN_PASSWORD` of 16–72 bytes. Run `npm run admin:create`, then remove `ADMIN_PASSWORD` from the environment. This command creates an administrator or resets and promotes the named account. Public registration is disabled.
 6. Start **both** `npm start` and `npm run worker` as separately supervised processes. `npm run dev` uses Node's built-in watch mode. Open the configured URL and sign in.
@@ -37,7 +41,7 @@ Create an Active automation rule matching the source and event type. Its target 
 
 ## Event API
 
-Server-side only: do not expose API keys in browser JavaScript. WordPress and Node.js use the same contract; server-to-server calls do not require CORS.
+Server-side only: do not expose API keys in browser JavaScript. WordPress and Node.js use the same contract; server-to-server calls do not require CORS. All example API paths below are relative to BASE_URL; on the requested deployment the full event endpoint is `https://clickecommerce.com.au/clicksurvey/api/events`.
 
 ```http
 POST /api/events
@@ -120,6 +124,10 @@ Install `mariadb-dump` or `mysqldump`. Set `MYSQLDUMP_PATH` to its executable pa
 Copy backups to encrypted storage with a retention policy appropriate to your business; schedule `npm run db:backup` in your hosting backup scheduler and monitor its exit status. Keep `.env` in separate secure recovery storage. A local backup alone does not protect against loss of this machine.
 
 Restore drill: create a separate empty database, decompress the `.sql.gz`, import the SQL using the MariaDB/MySQL client against that empty database, then run migrations and verify survey/response counts, permissions, and sample records. Stop web/worker processes during a real recovery. Start a recovered worker only after reviewing historical Pending/Retry/Sending records and SMTP logs. Never point a restore drill at production. The test suite exercises a real dump/restore when `TEST_MYSQLDUMP_PATH` is supplied.
+
+## Hosting under /clicksurvey
+
+Set `BASE_URL=https://clickecommerce.com.au/clicksurvey`. The web server/proxy must forward the complete `/clicksurvey/...` path to the Node application. Links, redirects, form actions, session cookies, email links and the Node/WordPress clients retain this prefix. Do not configure the proxy to strip `/clicksurvey`. Keep the app source and `.env` outside the public document root. Only the `/clicksurvey` route should be delegated to this app; the main website must remain unchanged. A host-managed Node process and a separate supervised worker are required.
 
 ## Verification
 

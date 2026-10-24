@@ -7,15 +7,15 @@
 <div class="row mt-4">
   <div class="col-lg-8">
     <div class="alert alert-info d-flex justify-content-between align-items-center mb-4">
-      <span><strong>💡 Getting started?</strong> Check out the <a href="/admin/help">Help & Tutorial</a> for a complete guide to ClickSurvey.</span>
+      <span><strong>💡 Getting started?</strong> Check out the <a href="<%= appPath %>/admin/help">Help & Tutorial</a> for a complete guide to ClickSurvey.</span>
     </div>
     <div class="card p-4 mb-4">
       <h4>Quick actions</h4>
       <div class="d-flex flex-wrap gap-2">
-        <a class="btn btn-primary" href="/admin/surveys">Manage Surveys</a>
-        <a class="btn btn-outline-primary" href="/admin/api-clients">API Clients</a>
-        <a class="btn btn-outline-primary" href="/admin/automation">Automation Rules</a>
-        <a class="btn btn-outline-primary" href="/admin/responses">Responses</a>
+        <a class="btn btn-primary" href="<%= appPath %>/admin/surveys">Manage Surveys</a>
+        <a class="btn btn-outline-primary" href="<%= appPath %>/admin/api-clients">API Clients</a>
+        <a class="btn btn-outline-primary" href="<%= appPath %>/admin/automation">Automation Rules</a>
+        <a class="btn btn-outline-primary" href="<%= appPath %>/admin/responses">Responses</a>
       </div>
     </div>
     <div class="card p-4 mb-4">
@@ -26,7 +26,7 @@
           <tbody>
             <% recentResponses.forEach(r => { %>
               <tr>
-                <td><a href="/admin/responses/<%= r.id %>"><%= r.id %></a></td>
+                <td><a href="<%= appPath %>/admin/responses/<%= r.id %>"><%= r.id %></a></td>
                 <td><%= r.title %></td>
                 <td><%= r.recipient_name || r.recipient_email || 'Guest' %></td>
                 <td><%= new Date(r.submitted_at).toLocaleString() %></td>

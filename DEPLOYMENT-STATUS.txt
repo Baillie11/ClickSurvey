@@ -1,0 +1,46 @@
+ClickSurvey deployment status — 24 October 2026
+
+Requested destination: https://clickecommerce.com.au/clicksurvey
+Status: PREPARED, NOT DEPLOYED.
+
+Completed locally
+- Added installation-path support to app routing, links, forms, redirects,
+  session cookies, worker invitation/unsubscribe URLs and the Node.js client.
+- Corrected malformed form actions from the earlier security-token insertion.
+  Rendered HTML tests now validate exact actions and token placement in forms.
+- Added USER-GUIDE.txt, an authenticated in-app help page and guide download.
+- Added visible survey IDs, Open survey and Export CSV actions; removed the
+  unsupported Paused option and corrected misleading field descriptions.
+- Applied current dependency patches. npm audit reports zero known findings.
+- 19 checks passed against a separate MariaDB test instance, including a real
+  local HTTP Node client, form submission, guide download and backup restore.
+
+Access blockers
+- Existing configured SSH destination s06ee.syd5.hostingplatform.net.au:2683
+  timed out. The requested domain resolved to 43.250.142.26; SSH connection
+  attempts to that address on the known hosting port and port 22 timed out.
+- No authenticated browser hosting session is available to this task.
+- The project's local .env still has an unusable database root login and example
+  SMTP settings. These cannot be treated as production credentials.
+- The administrator/test email and the correct hosting account remain unconfirmed.
+
+No production files, databases, mail accounts or DNS records were changed.
+No real invitation email was sent. Do not interpret this file or the planned
+URL in the user guide as confirmation that the application is publicly running.
+
+To finish when hosting access is supplied
+1. Inspect Node/runtime, database version, document root and existing /clicksurvey
+   route; back up anything already there before replacing it.
+2. Install source outside the public document root and route only /clicksurvey
+   to the app, retaining the prefix as described in README.md.
+3. Configure BASE_URL=https://clickecommerce.com.au/clicksurvey, NODE_ENV=production,
+   the trusted proxy hop count, unique session secret, working database and SMTP.
+4. Back up the target database, run db:migrate, provision the approved admin,
+   create website-specific keys and install them only in source-site secrets.
+5. Start supervised web and worker processes and verify /clicksurvey/health,
+   /clicksurvey/ready, login, actual inbox delivery, completion and guide download.
+6. Verify the original clickecommerce.com.au homepage still works, then test the
+   authorized WordPress/Node.js business hooks with a recipient the user controls.
+
+Required input: working hosting access or an authenticated cPanel session, secure
+database/SMTP configuration location, and confirmed admin/test email address.

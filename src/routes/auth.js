@@ -22,33 +22,27 @@ router.post(
     try {
       address = email(req.body.email);
     } catch {
-      return res
-        .status(400)
-        .render("auth/login", {
-          title: "Login",
-          error: "Invalid email or password.",
-        });
+      return res.status(400).render("auth/login", {
+        title: "Login",
+        error: "Invalid email or password.",
+      });
     }
     const password = req.body.password;
     if (typeof password !== "string" || Buffer.byteLength(password) > 72)
-      return res
-        .status(400)
-        .render("auth/login", {
-          title: "Login",
-          error: "Invalid email or password.",
-        });
+      return res.status(400).render("auth/login", {
+        title: "Login",
+        error: "Invalid email or password.",
+      });
     const [users] = await global.db.execute(
       "SELECT * FROM users WHERE email = ? AND is_admin = 1",
       [address],
     );
     const user = users[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash)))
-      return res
-        .status(401)
-        .render("auth/login", {
-          title: "Login",
-          error: "Invalid email or password.",
-        });
+      return res.status(401).render("auth/login", {
+        title: "Login",
+        error: "Invalid email or password.",
+      });
     await new Promise((resolve, reject) =>
       req.session.regenerate((e) => (e ? reject(e) : resolve())),
     );
@@ -63,7 +57,7 @@ router.post("/logout", async (req, res) => {
   await new Promise((resolve, reject) =>
     req.session.destroy((e) => (e ? reject(e) : resolve())),
   );
-  res.clearCookie("clicksurvey.sid");
+  res.clearCookie("clicksurvey.sid", { path: res.locals.appPath || "/" });
   res.redirect("/login");
 });
 module.exports = router;

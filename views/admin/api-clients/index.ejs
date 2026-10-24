@@ -5,7 +5,7 @@
   <h5>Create API Client</h5>
   <p class="text-muted small">API clients allow external applications to trigger surveys and create invites via the ClickSurvey API. Each client gets a unique API key.</p>
   <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
-  <form method="post" action="/admin/api-clients">
+  <form method="post" action="<%= appPath %>/admin/api-clients">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <div class="row g-3">
       <div class="col-md-8">
@@ -45,8 +45,8 @@
             <td><span class="badge <%= client.status === 'Active' ? 'bg-success' : 'bg-secondary' %>"><%= client.status %></span></td>
             <td><%= new Date(client.created_at).toLocaleDateString() %></td>
             <td>
-              <form method="post" action="/admin/api-clients/<%= client.id %>
-    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />/toggle" class="d-inline">
+              <form method="post" action="<%= appPath %>/admin/api-clients/<%= client.id %>/toggle" class="d-inline">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
                 <button class="btn btn-sm btn-outline-secondary"><%= client.status === 'Active' ? 'Disable' : 'Enable' %></button>
               </form>
             </td>

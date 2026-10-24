@@ -5,7 +5,7 @@
     <tbody>
       <% responses.forEach(r => { %>
         <tr>
-          <td><a href="/admin/responses/<%= r.id %>"><%= r.id %></a></td>
+          <td><a href="<%= appPath %>/admin/responses/<%= r.id %>"><%= r.id %></a></td>
           <td><%= r.survey_title %></td>
           <td><%= r.recipient_name || r.recipient_email || 'Guest' %></td>
           <td><%= r.source_app || 'N/A' %></td>

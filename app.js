@@ -26,9 +26,13 @@ function validateConfig() {
     url.password
   )
     throw new Error("Invalid BASE_URL");
-  if (url.pathname !== "/" || url.search || url.hash)
+  if (
+    !/^(?:\/[A-Za-z0-9_-]+)*\/?$/.test(url.pathname) ||
+    url.search ||
+    url.hash
+  )
     throw new Error(
-      "BASE_URL must be an origin without a path, query or fragment",
+      "BASE_URL may have a simple installation path, without a query or fragment",
     );
   if (
     process.env.TRUST_PROXY_HOPS &&
@@ -45,7 +49,29 @@ function validateConfig() {
 function createApp(db, options = {}) {
   global.db = db;
   const app = express();
+  const baseUrl = (
+    options.baseUrl ||
+    process.env.BASE_URL ||
+    "http://localhost:3000"
+  ).replace(/\/$/, "");
+  const appPath = new URL(baseUrl).pathname.replace(/\/$/, "");
   app.disable("x-powered-by");
+  app.use((req, res, next) => {
+    res.locals.appPath = appPath;
+    const redirect = res.redirect.bind(res);
+    res.redirect = (...args) => {
+      const index = args.length - 1;
+      const target = args[index];
+      if (
+        typeof target === "string" &&
+        target.startsWith("/") &&
+        !target.startsWith("//")
+      )
+        args[index] = appPath + target;
+      return redirect(...args);
+    };
+    next();
+  });
   if (process.env.TRUST_PROXY_HOPS)
     app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS));
   app.use(
@@ -101,6 +127,7 @@ function createApp(db, options = {}) {
       resave: false,
       saveUninitialized: false,
       cookie: {
+        path: appPath || "/",
         httpOnly: true,
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
@@ -111,7 +138,7 @@ function createApp(db, options = {}) {
   app.use((req, res, next) => {
     res.set("Cache-Control", "no-store");
     res.locals.user = req.session.user;
-    res.locals.baseUrl = process.env.BASE_URL || "http://localhost:3000";
+    res.locals.baseUrl = baseUrl;
     next();
   });
   app.use(csrf);
@@ -155,7 +182,13 @@ function createApp(db, options = {}) {
       return res.status(status).json({ success: false, error: message });
     res.status(status).type("text").send(message);
   });
-  return app;
+  if (!appPath) return app;
+  const host = express();
+  host.disable("x-powered-by");
+  if (process.env.TRUST_PROXY_HOPS)
+    host.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS));
+  host.use(appPath, app);
+  return host;
 }
 async function start() {
   validateConfig();

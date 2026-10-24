@@ -492,5 +492,101 @@ test(
         }
       },
     );
+    await t.test(
+      "subdirectory Node request, email URLs, rendered form submission and guide download",
+      async () => {
+        const prefixed = createApp(db, {
+          baseUrl: "http://localhost/clicksurvey",
+          sessionSecret: "test-secret-that-is-at-least-32-characters",
+        });
+        const server = prefixed.listen(0, "127.0.0.1");
+        await new Promise((resolve) => server.once("listening", resolve));
+        const saved = {
+          url: process.env.CLICKSURVEY_URL,
+          key: process.env.CLICKSURVEY_API_KEY,
+          base: process.env.BASE_URL,
+        };
+        process.env.CLICKSURVEY_URL =
+          "http://127.0.0.1:" + server.address().port + "/clicksurvey";
+        process.env.CLICKSURVEY_API_KEY = key;
+        process.env.BASE_URL = process.env.CLICKSURVEY_URL;
+        try {
+          const { requestSurvey } = require("../examples/node-client");
+          const result = await requestSurvey(
+            payload("subdirectory-event", {
+              recipient: { email: "prefix@example.com" },
+            }),
+          );
+          assert.ok(result.inviteId);
+          await db.execute(
+            "UPDATE survey_invites SET due_at=UTC_TIMESTAMP() WHERE id=?",
+            [result.inviteId],
+          );
+          let email;
+          await deliverOne(db, {
+            sendMail: async (mail) => {
+              email = mail;
+              return { accepted: ["prefix@example.com"], rejected: [] };
+            },
+          });
+          assert.ok(email.text.includes("/clicksurvey/r/"));
+          assert.ok(email.html.includes("/clicksurvey/unsubscribe/"));
+          const [[invite]] = await db.execute(
+            "SELECT invite_token FROM survey_invites WHERE id=?",
+            [result.inviteId],
+          );
+          const { parseFragment } = require("parse5");
+          function find(node, tag) {
+            if (node.tagName === tag) return node;
+            for (const child of node.childNodes || []) {
+              const found = find(child, tag);
+              if (found) return found;
+            }
+          }
+          const respondent = request.agent(prefixed);
+          const page = await respondent
+            .get("/clicksurvey/r/" + invite.invite_token)
+            .expect(200);
+          const form = find(parseFragment(page.text), "form");
+          assert.equal(
+            form.attrs.find((a) => a.name === "action").value,
+            "/clicksurvey/r/" + invite.invite_token,
+          );
+          await respondent
+            .post(form.attrs.find((a) => a.name === "action").value)
+            .type("form")
+            .send({ _csrf: csrf(page.text) })
+            .expect(200);
+          const admin = request.agent(prefixed);
+          const login = await admin.get("/clicksurvey/login").expect(200);
+          await admin
+            .post("/clicksurvey/login")
+            .type("form")
+            .send({
+              _csrf: csrf(login.text),
+              email: "admin@example.com",
+              password: "test-admin-password-unique",
+            })
+            .expect(302)
+            .expect("Location", "/clicksurvey/admin");
+          await admin.get("/clicksurvey/admin/help").expect(200);
+          const guide = await admin
+            .get("/clicksurvey/admin/help/download")
+            .expect(200);
+          assert.ok(guide.text.includes("CLICK SURVEY"));
+        } finally {
+          for (const [key, value] of Object.entries({
+            CLICKSURVEY_URL: saved.url,
+            CLICKSURVEY_API_KEY: saved.key,
+            BASE_URL: saved.base,
+          })) {
+            if (value === undefined) delete process.env[key];
+            else process.env[key] = value;
+          }
+          server.closeAllConnections();
+          await new Promise((resolve) => server.close(resolve));
+        }
+      },
+    );
   },
 );

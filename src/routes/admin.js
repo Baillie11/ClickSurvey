@@ -9,6 +9,8 @@ const {
   csvCell,
 } = require("../validation");
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 
 router.use(requireAdmin);
 router.use((req, res, next) => {
@@ -67,8 +69,20 @@ router.param("id", (req, res, next, value) => {
 });
 
 router.get("/help", (req, res) => {
-  res.render("admin/help", { title: "Help & Tutorial" });
+  res.render("admin/help", {
+    title: "Help & Tutorial",
+    guide: fs.readFileSync(
+      path.join(__dirname, "../../USER-GUIDE.txt"),
+      "utf8",
+    ),
+  });
 });
+router.get("/help/download", (req, res) =>
+  res.download(
+    path.join(__dirname, "../../USER-GUIDE.txt"),
+    "ClickSurvey-User-Guide.txt",
+  ),
+);
 
 router.get("/", async (req, res) => {
   const [surveyCountRows] = await global.db.execute(

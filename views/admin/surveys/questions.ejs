@@ -1,10 +1,10 @@
-<div class="d-flex justify-content-between align-items-center mb-3"><h1>Questions - <%= survey.title %></h1><a class="btn btn-primary" href="/admin/surveys">Back to Surveys</a></div>
+<div class="d-flex justify-content-between align-items-center mb-3"><h1>Questions - <%= survey.title %></h1><a class="btn btn-primary" href="<%= appPath %>/admin/surveys">Back to Surveys</a></div>
 <div class="card p-4 mb-4">
   <h5>Add New Question</h5>
   <p class="text-muted small">Build your survey by adding questions below. Questions appear in the order they were added.</p>
   <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
-  <form method="post" action="/admin/surveys/<%= survey.id %>
-    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />/questions">
+  <form method="post" action="<%= appPath %>/admin/surveys/<%= survey.id %>/questions">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <div class="row g-3">
       <div class="col-md-6">
         <label class="form-label">Question text <span class="text-danger">*</span></label>
@@ -57,9 +57,9 @@
             <td><%= q.question_type %></td>
             <td><%= q.required ? 'Yes' : 'No' %></td>
             <td>
-              <a class="btn btn-sm btn-outline-secondary" href="/admin/surveys/<%= survey.id %>/questions/<%= q.id %>/edit">Edit</a>
-              <form class="d-inline" method="post" action="/admin/surveys/<%= survey.id %>
-    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />/questions/<%= q.id %>/delete"><button class="btn btn-sm btn-danger">Delete</button></form>
+              <a class="btn btn-sm btn-outline-secondary" href="<%= appPath %>/admin/surveys/<%= survey.id %>/questions/<%= q.id %>/edit">Edit</a>
+              <form class="d-inline" method="post" action="<%= appPath %>/admin/surveys/<%= survey.id %>/questions/<%= q.id %>/delete">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" /><button class="btn btn-sm btn-danger">Archive</button></form>
             </td>
           </tr>
         <% }) %>

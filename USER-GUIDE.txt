@@ -1,0 +1,210 @@
+CLICK SURVEY — USER GUIDE
+Updated 24 October 2026
+Planned installation: https://clickecommerce.com.au/clicksurvey
+This is the intended address; deployment must be verified before using it.
+
+WHAT CLICK SURVEY DOES
+Create a survey, then either share its public link or have a website send an
+event to ClickSurvey. An automation rule selects the survey and schedules a
+private invitation email. Responses are saved for review and CSV export.
+
+Public link: anyone with the link can respond, including multiple submissions.
+Private email invitation: one completed response per invitation; expires 30 days
+after its scheduled send time. Anyone possessing that private link can use it,
+so do not forward it to other people.
+
+1. SIGN IN
+Open the installation address followed by /login:
+https://clickecommerce.com.au/clicksurvey/login
+Use the administrator email and password supplied during setup. Public sign-up
+is disabled. All administrator accounts belong to one trusted team and can see
+the same surveys and response data. An operator provisions/resets accounts.
+Use Help in the top navigation to read or download this guide.
+
+2. CREATE YOUR FIRST SURVEY
+From the dashboard choose Manage Surveys, then New Survey.
+- Survey Key: a unique short name, such as customer-feedback. Use letters,
+  numbers, hyphens or underscores. It becomes part of the public survey URL.
+- Title: the name respondents see, for example 'How was your experience?'.
+- Description: optional introduction; it appears on the public survey page.
+- Thank You Message: what respondents see after submitting.
+- Status: start with Draft while adding questions. Choose Active when testing
+  or collecting responses. Draft/Archived surveys are unavailable to respondents.
+- Logo URL: optional publicly accessible HTTPS image; footer text is optional.
+Click Create Survey. Find the survey's numeric ID in the survey list. You will
+need this ID when granting an API client access.
+
+3. ADD QUESTIONS
+In Manage Surveys, click Questions beside your survey.
+Enter the question text, select a type, and tick Required when an answer is
+mandatory. Click Add Question for each question. They appear in creation order.
+Suggested first survey:
+  1. 'How would you rate your experience?' — Star rating, Required.
+  2. 'What could we improve?' — Long text, Optional.
+
+Available types: short text, long text, email, name, number, multiple choice,
+checkboxes, dropdown, star rating (1–5), rating (1–10), and yes/no.
+Star ratings and numeric ratings are displayed as selectors.
+For multiple choice, checkboxes or dropdowns, supply options as JSON:
+  ["Excellent", "Good", "Average", "Poor"]
+Use double quotes and at least one unique non-empty option.
+Edit changes a question. Archive removes it from future forms while retaining
+existing answers. Avoid changing the meaning of questions after collecting data;
+create a new survey for a materially different questionnaire.
+
+4. TEST AND SHARE A PUBLIC SURVEY
+Edit the survey, set Status to Active, and save it. There is no Draft preview.
+Choose Open survey in the survey list. For the example key, the address is:
+https://clickecommerce.com.au/clicksurvey/s/customer-feedback
+Check the questions and submit a test response. Check Responses afterwards.
+An Active public URL can be shared in a website link or QR code. Public responses
+are anonymous unless the questions themselves collect identity information;
+ClickSurvey also stores IP address and browser user-agent with the response.
+Test responses are real database records and are included in exports.
+Keep production tests clearly labelled. No response-delete screen is provided.
+Changing the survey key changes its public URL, so update any shared links.
+
+5. ENABLE INVITATIONS FROM A WEBSITE
+An API client grants one website permission to request selected surveys.
+Open API Clients from the dashboard.
+- Client name must exactly match sourceApp sent by that website; examples:
+  'Puzzle Path' for WordPress or 'VitaePro' for a Node.js application.
+- Allowed survey IDs: the numeric survey IDs it may request, separated by commas.
+- Status: Active.
+Click Create API Client. Copy the key immediately into the calling server's
+protected configuration. It is displayed once and cannot be recovered later.
+Use separate keys for each website and for test versus production environments.
+Never put a key in browser JavaScript, a public repository or a public page.
+Disable an old key to revoke access; create a replacement if a key is lost.
+
+6. CREATE AN AUTOMATION RULE
+Open Automation Rules from the dashboard.
+- Rule name: a descriptive label, for example 'Hunt completion feedback'.
+- Source app: exactly the same value as the API client's name and event sourceApp.
+- Event type: the agreed trigger, for example hunt_completed or cover_letter_created.
+- Survey: choose the Active survey permitted by the key.
+- Delay minutes: 0 for the next worker check, 60 for an hour; maximum 43,200.
+- Status: Active.
+Click Add Rule. If several rules match, only the newest Active rule is used.
+Create the rule before sending events. The current screen creates rules but does
+not edit/toggle existing ones. To replace a rule, create a newer matching rule;
+ask the operator to deactivate an unwanted rule. Making the survey Draft stops
+access and delivery for that survey and can expire queued invitations.
+
+7. CONNECT WORDPRESS
+This is a developer setup step, performed once per website.
+Copy examples/wordpress-clicksurvey.php into wp-content/mu-plugins/ on the source
+WordPress site. Create mu-plugins if needed. In protected wp-config.php define:
+  define('CLICKSURVEY_URL', 'https://clickecommerce.com.au/clicksurvey');
+  define('CLICKSURVEY_API_KEY', 'YOUR_PRIVATE_KEY');
+
+Connect the relevant business event hook to this function, for example:
+  $result = clicksurvey_request(
+      'hunt_completed:' . $booking_id,
+      'Puzzle Path',
+      'hunt_completed',
+      $customer_email,
+      $customer_name,
+      array('bookingId' => (string) $booking_id)
+  );
+Check is_wp_error($result). Log failures without secrets and persist retryable
+requests in the website's job system. The example does not install a booking-
+specific or WooCommerce-specific business hook automatically.
+
+8. CONNECT NODE.JS OR ANOTHER WEBSITE STACK
+Set these server-side environment variables on the calling application:
+  CLICKSURVEY_URL=https://clickecommerce.com.au/clicksurvey
+  CLICKSURVEY_API_KEY=YOUR_PRIVATE_KEY
+Use examples/node-client.js from the server and call requestSurvey() when the
+business event succeeds. Any server stack can instead send this HTTPS request:
+
+  POST https://clickecommerce.com.au/clicksurvey/api/events
+  Content-Type: application/json
+  Authorization: Bearer YOUR_PRIVATE_KEY
+
+  {
+    "eventId": "cover_letter_created:123",
+    "sourceApp": "VitaePro",
+    "eventType": "cover_letter_created",
+    "recipient": { "name": "Test Customer", "email": "test@example.com" },
+    "metadata": { "coverLetterId": "123" }
+  }
+
+recipient.name is optional. metadata must be an object. The payload must be JSON.
+Use a stable eventId derived from the originating business event. Keep exactly
+the same eventId and logical data on retries so no additional invitation is made.
+An event ID with different data returns 409. New IDs represent new invitations.
+Keep pending events in the source website's durable job storage until accepted.
+
+9. CONFIRM THE INVITATION WAS SENT
+HTTP 202 means the event was recorded, not that email was delivered.
+Inspect inviteCreated; false means no Active matching rule was found.
+HTTP 200 on a repeated event means it was already accepted.
+After acceptance, the worker sends when the invitation is due. Check Delivery
+and the worker heartbeat. A stopped worker leaves invitations queued.
+For the same client's event, a developer can query:
+  GET /clicksurvey/api/events/cover_letter_created%3A123
+with the same Authorization header.
+
+Common delivery statuses:
+- Pending: scheduled; not sent yet.
+- Sending: a worker is communicating with SMTP.
+- Retry: definite transient failure; another attempt is scheduled.
+- Sent: SMTP accepted the email; inbox delivery is still provider-dependent.
+- Opened: the survey link was visited; a scanner may also visit a link.
+- Completed: a valid response has been saved.
+- Suppressed: the address has opted out or been blocked.
+- Expired: time elapsed or the survey was made unavailable before sending.
+- Failed: delivery failed permanently or exhausted retries. Delivery has a Retry
+  button for an unexpired Failed invitation after fixing the underlying problem.
+- DeliveryUnknown: the connection/worker was interrupted and acceptance is
+  uncertain. The operator must check provider logs before any resend.
+
+10. VIEW AND EXPORT RESPONSES
+Open Responses from the dashboard. Select a response ID to see its answers and
+available recipient/source details. Public submissions normally appear as Guest.
+Open Manage Surveys and choose Export CSV beside the required survey to download
+its responses, answers and available metadata. CSV exports are not a full backup.
+Keep exports private because they may contain personal information. Spreadsheet
+formula-like values are exported as text for safety.
+
+11. MANAGE OPT-OUTS
+Invitation emails include an Unsubscribe link. Recipients confirm on a page before
+future survey invitations are blocked. Opening the link alone does not opt out.
+An administrator may add an address in Suppression List and record a reason.
+Suppression applies globally to that email address, including other source apps;
+the source field is context only. Already accepted SMTP messages cannot be recalled.
+Suppressed private links cannot collect further responses. There is no self-service
+resubscribe screen; ask the operator to review a legitimate resubscribe request.
+
+12. QUICK TROUBLESHOOTING
+- Cannot sign in: check the provisioned admin email/password. Public registration
+  is disabled. After repeated attempts, wait for the login limit to reset.
+- Invalid form token: reload the page, then submit again with the refreshed form.
+- No invitation: check exact source/event names, Active rule, Active survey and
+  allowed survey IDs. An accepted no-rule event is not replayed by retrying it;
+  fix configuration first and deliberately use a new event ID if replay is needed.
+- Email delayed: check the rule's delay and the worker heartbeat in Delivery.
+- 401: invalid or disabled API key. 403: wrong source/survey permission.
+- 400/415: invalid fields/content type. 409: event ID reused with different data.
+- 429 or temporary 5xx/network errors: retry later with the same event ID/payload.
+- Private link unavailable: already completed, expired, suppressed, not yet sent,
+  or its survey is no longer Active.
+- Forgotten key: create a replacement and disable the old key.
+- Missing historical answers: ensure you are viewing the correct survey's CSV;
+  an operator should investigate database/restore issues rather than resubmitting.
+
+13. ROUTINE OPERATION
+Before a real campaign, test one recipient you control from each source website,
+confirm inbox receipt, complete the private survey and check its response/export.
+Review delivery failures, worker heartbeat and opt-outs regularly. Keep database
+backups encrypted and off the web server, and periodically test restoration.
+The web process and delivery worker must both be supervised and restart after
+server reboots. /clicksurvey/health checks the web process; /clicksurvey/ready also
+checks database access and a recent worker heartbeat.
+Use only real recipient addresses you intend to contact. Do not send bulk trial
+events to customers while testing. SMTP acceptance does not prove inbox receipt.
+
+OPERATOR SETUP AND RECOVERY
+See README.md for migrations, admin provisioning, SMTP/TLS, proxy settings,
+backup/restore and deployment checks. Secrets do not belong in this guide.

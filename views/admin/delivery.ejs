@@ -3,6 +3,6 @@
 <p>DeliveryUnknown means sending was interrupted or the SMTP result was ambiguous. Check the provider before taking further action to avoid duplicate emails.</p>
 <table class="table"><thead><tr><th>ID</th><th>Recipient</th><th>Status</th><th>Attempts</th><th>Due</th><th>Error</th><th>Action</th></tr></thead><tbody>
 <% invites.forEach(invite=>{ %><tr><td><%= invite.id %></td><td><%= invite.recipient_email %></td><td><%= invite.status %></td><td><%= invite.attempts %></td><td><%= invite.due_at %></td><td><%= invite.last_error %></td><td>
-<% if(invite.status==='Failed'){ %><form method="post" action="/admin/delivery/<%= invite.id %>
-    <input type="hidden" name="_csrf" value="<%= csrfToken %>" />/retry"><input type="hidden" name="_csrf" value="<%= csrfToken %>" /><button class="btn btn-sm btn-secondary">Retry</button></form><% } %>
+<% if(invite.status==='Failed'){ %><form method="post" action="<%= appPath %>/admin/delivery/<%= invite.id %>/retry">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>" /><button class="btn btn-sm btn-secondary">Retry</button></form><% } %>
 </td></tr><% }) %></tbody></table>

@@ -59,7 +59,7 @@ async function deliverOne(db, transport) {
   });
   if (!invite) return false;
   if (invite.skipped) return true;
-  const base = new URL(process.env.BASE_URL).origin;
+  const base = process.env.BASE_URL.replace(/\/$/, "");
   const url = `${base}/r/${invite.invite_token}`;
   const unsubscribe = `${base}/unsubscribe/${invite.invite_token}`;
   let info;

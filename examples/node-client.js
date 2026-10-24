@@ -13,21 +13,24 @@ async function requestSurvey({
     base.hostname !== "127.0.0.1"
   )
     throw Error("Use HTTPS for ClickSurvey");
-  const response = await fetch(new URL("/api/events", base), {
-    method: "POST",
-    signal: AbortSignal.timeout(10000),
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.CLICKSURVEY_API_KEY}`,
+  const response = await fetch(
+    new URL(base.href.replace(/\/$/, "") + "/api/events"),
+    {
+      method: "POST",
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.CLICKSURVEY_API_KEY}`,
+      },
+      body: JSON.stringify({
+        eventId,
+        sourceApp,
+        eventType,
+        recipient,
+        metadata,
+      }),
     },
-    body: JSON.stringify({
-      eventId,
-      sourceApp,
-      eventType,
-      recipient,
-      metadata,
-    }),
-  });
+  );
   const result = await response.json();
   if (!response.ok || !result.success)
     throw Object.assign(Error(result.error || "Survey request failed"), {
