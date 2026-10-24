@@ -1,7 +1,28 @@
 CLICK SURVEY — USER GUIDE
 Updated 24 October 2026
-Planned installation: https://clickecommerce.com.au/clicksurvey
-This is the intended address; deployment must be verified before using it.
+Live installation: https://clickecommerce.com.au/clicksurvey
+Administrator email: supplied in the private live-admin-access.txt file.
+Help and download: https://clickecommerce.com.au/clicksurvey/admin/help
+
+QUICK START FOR THIS INSTALLATION
+1. Sign in at https://clickecommerce.com.au/clicksurvey/login using the password
+   supplied separately in the private live-admin-access.txt file. It is not
+   included in GitHub or this guide.
+2. Open Manage Surveys. 'Customer feedback - starter survey' is a Draft with a
+   required 1-5 rating and an optional comment question. Edit its wording, then
+   change its status to Active. Alternatively create a separate survey.
+3. Choose Open survey to test and share the public link. For the starter:
+   https://clickecommerce.com.au/clicksurvey/s/customer-feedback-starter
+   This link becomes available only after the survey is Active.
+4. For email invitations, create an API client and automation rule using steps
+   5-8 below, then connect the originating website's actual business event.
+5. Use Responses and Export CSV to review answers. Use Delivery to check email.
+
+Deployment verification created two clearly labelled test responses. The test
+WordPress and Node.js API clients and automation rules have been disabled; do
+not reuse them. Create separate production clients for your source websites.
+Both test emails were confirmed received in the approved administrator mailbox on
+24 October 2026. Invitation emails are sent from surveys@clickecommerce.com.au.
 
 WHAT CLICK SURVEY DOES
 Create a survey, then either share its public link or have a website send an
@@ -116,7 +137,19 @@ Set these server-side environment variables on the calling application:
   CLICKSURVEY_URL=https://clickecommerce.com.au/clicksurvey
   CLICKSURVEY_API_KEY=YOUR_PRIVATE_KEY
 Use examples/node-client.js from the server and call requestSurvey() when the
-business event succeeds. Any server stack can instead send this HTTPS request:
+business event succeeds, for example:
+
+  const { requestSurvey } = require('./node-client');
+  await requestSurvey({
+    eventId: 'cover_letter_created:' + coverLetter.id,
+    sourceApp: 'VitaePro',
+    eventType: 'cover_letter_created',
+    recipient: { email: user.email, name: user.name },
+    metadata: { coverLetterId: String(coverLetter.id) }
+  });
+
+The sourceApp must exactly match the API client you created. Any server stack
+can instead send this HTTPS request:
 
   POST https://clickecommerce.com.au/clicksurvey/api/events
   Content-Type: application/json
@@ -207,4 +240,5 @@ events to customers while testing. SMTP acceptance does not prove inbox receipt.
 
 OPERATOR SETUP AND RECOVERY
 See README.md for migrations, admin provisioning, SMTP/TLS, proxy settings,
-backup/restore and deployment checks. Secrets do not belong in this guide.
+backup/restore and deployment checks. LIVE-OPERATIONS.txt records this host's
+watchdogs and backup schedule. Secrets do not belong in this guide.

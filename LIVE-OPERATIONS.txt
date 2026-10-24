@@ -1,0 +1,70 @@
+ClickSurvey live operations - 24 October 2026
+
+PUBLIC ENDPOINTS
+https://clickecommerce.com.au/clicksurvey/
+https://clickecommerce.com.au/clicksurvey/login
+https://clickecommerce.com.au/clicksurvey/health
+https://clickecommerce.com.au/clicksurvey/ready
+The ready endpoint checks both database access and recent worker heartbeat.
+
+HOST LAYOUT
+Account: clickeco on s06ee.syd5.hostingplatform.net.au; SSH port 2683.
+Application: /home/clickeco/clicksurvey
+Private operational configuration: /home/clickeco/.config/clicksurvey
+Production .env: /home/clickeco/clicksurvey/.env (mode 600)
+Database: clickeco_clicksurvey; runtime user clickeco_csrun has data permissions
+only. The separate migration user has schema privileges only for this database.
+Administrator access: private admin-access.txt, never in GitHub/public_html.
+
+WEB AND WORKER
+Node: /opt/alt/alt-nodejs22/root/usr/bin/node
+Web listens on 127.0.0.1:43187; BASE_URL includes /clicksurvey.
+The root public_html/.htaccess contains a scoped LiteSpeed proxy rule for this
+path. It preserves the complete prefix; the rest of WordPress routing remains.
+The nested clicksurvey/.htaccess disables Passenger and directory listing.
+Only local connections can reach the application's listening socket.
+
+The cPanel Node-selector entry is deliberately stopped: web-launched processes
+inherit a low thread/process limit on this account. Do not press Start in that
+selector while using this proxy setup, or run an additional npm start process.
+
+These private scripts are invoked by cron every minute and use flock to prevent
+duplicate instances. They restart an exited service within about one minute:
+  web-watchdog.sh -> node app.js
+  worker-watchdog.sh -> node src/worker.js
+Logs: web.log and worker.log in the private operational directory.
+Node flags: UV_THREADPOOL_SIZE=1;
+NODE_OPTIONS="--v8-pool-size=1 --max-old-space-size=256".
+
+For a controlled restart, identify the exact process using both its command and
+/proc/PID/cwd == /home/clickeco/clicksurvey. Send TERM only to that web or worker
+process, wait for it to exit, then invoke its watchdog. Never kill all Node
+processes: other live applications share this account.
+
+UPDATING SOURCE
+Keep .env and backups private. Stop the worker before schema changes. Take and
+copy a snapshot, fetch reviewed source, install locked dependencies with the
+low-thread Node flags, run migrations with the migration user only, restore the
+runtime environment and restart the affected services. Check login, ready and
+an authorized end-to-end event. Do not run development tests against production.
+
+BACKUP AND RECOVERY
+Cron invokes backup-job.sh daily at 02:17 hosting-server time. At deployment the
+server uses AEDT, so this is 01:17 Australia/Brisbane; daylight-saving changes can
+shift the Brisbane time. Existing unrelated cron entries are preserved.
+Snapshots: /home/clickeco/clicksurvey/backups/clickeco_clicksurvey-*.sql.gz,
+mode 600. The job retains approximately 14 days and logs success/failure to
+/home/clickeco/.config/clicksurvey/backup.log. Check that log and file timestamps.
+An initial snapshot has been copied off-server and its restore verified locally.
+Automatic off-server copying is not configured: periodically copy snapshots to
+private off-server storage and retain production .env separately for recovery.
+GitHub backs up source code, not database data or production credentials.
+See README.md for an isolated restore drill and precautions before restarting
+delivery from a recovered queue.
+
+ACCEPTANCE AND CAPACITY
+Both WordPress and Node.js live requests, receipt in the approved mailbox,
+response completion and export were verified on 24 October 2026.
+One web process and one worker are running. Shared-account thread/process limits
+remain finite; monitor ready, worker heartbeat, failures and backlog as traffic
+grows. This deployment has not been load-tested for high-volume campaigns.

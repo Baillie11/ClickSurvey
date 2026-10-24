@@ -6,6 +6,8 @@ Event-triggered surveys for WordPress, Node.js and other servers that can POST J
 
 Read [the user guide](USER-GUIDE.txt) for step-by-step survey creation, invitations, WordPress/Node.js setup, delivery monitoring and exports. It is also available through Help in the app, with a download button.
 
+Live: [ClickSurvey](https://clickecommerce.com.au/clicksurvey/), [administrator login](https://clickecommerce.com.au/clicksurvey/login), [in-app instructions](https://clickecommerce.com.au/clicksurvey/admin/help). Deployment was verified on 24 October 2026, including real WordPress and Node.js requests and receipt of both invitation emails. See [deployment verification](DEPLOYMENT-STATUS.txt) and [host operation/recovery](LIVE-OPERATIONS.txt).
+
 ## Requirements and setup
 
 - Node.js 20.20 or newer; MySQL 8+ or MariaDB 10.6+ with InnoDB and `SKIP LOCKED` support.
@@ -92,7 +94,7 @@ if (is_wp_error($result)) {
 }
 ```
 
-Choose the actual business hook in your WordPress plugin. The client validates HTTP/API acknowledgement and distinguishes missing rules from queued invitations. It does not install a WooCommerce or booking-specific hook automatically. WordPress runtime execution remains a staging acceptance check.
+Choose the actual business hook in your WordPress plugin. The client validates HTTP/API acknowledgement and distinguishes missing rules from queued invitations. It does not install a WooCommerce or booking-specific hook automatically. The client was verified in the live Click eCommerce WordPress runtime; each business-specific hook must still be connected and tested on its source website.
 
 ## Node.js
 
@@ -127,7 +129,7 @@ Restore drill: create a separate empty database, decompress the `.sql.gz`, impor
 
 ## Hosting under /clicksurvey
 
-Set `BASE_URL=https://clickecommerce.com.au/clicksurvey`. The web server/proxy must forward the complete `/clicksurvey/...` path to the Node application. Links, redirects, form actions, session cookies, email links and the Node/WordPress clients retain this prefix. Do not configure the proxy to strip `/clicksurvey`. Keep the app source and `.env` outside the public document root. Only the `/clicksurvey` route should be delegated to this app; the main website must remain unchanged. A host-managed Node process and a separate supervised worker are required.
+Set `BASE_URL=https://clickecommerce.com.au/clicksurvey`. The web server/proxy must forward the complete `/clicksurvey/...` path to the Node application. Links, redirects, form actions, session cookies, email links and the Node/WordPress clients retain this prefix. Do not configure the proxy to strip `/clicksurvey`. Keep the app source and `.env` outside the public document root. Only the `/clicksurvey` route should be delegated to this app; the main website must remain unchanged. A supervised Node process and a separate supervised worker are required. The web process binds to `BIND_HOST=127.0.0.1` by default; containers may require an explicit `0.0.0.0` binding. Hosts that load startup files through `require()` can use `passenger.cjs`; the live VentraIP deployment instead uses the loopback proxy and watchdogs documented in LIVE-OPERATIONS.txt.
 
 ## Verification
 

@@ -194,8 +194,10 @@ async function start() {
   validateConfig();
   const db = await initDb();
   const app = createApp(db);
-  const server = app.listen(Number(process.env.PORT || 3000), () =>
-    console.log("ClickSurvey started"),
+  const server = app.listen(
+    Number(process.env.PORT || 3000),
+    process.env.BIND_HOST || "127.0.0.1",
+    () => console.log("ClickSurvey started"),
   );
   server.on("error", (error) => {
     console.error("Server startup failed:", error.code);
@@ -211,4 +213,4 @@ if (require.main === module)
     console.error("Startup failed:", error.message);
     process.exitCode = 1;
   });
-module.exports = { createApp, validateConfig };
+module.exports = { createApp, validateConfig, start };

@@ -1,46 +1,44 @@
-ClickSurvey deployment status — 24 October 2026
+ClickSurvey deployment status - 24 October 2026
 
-Requested destination: https://clickecommerce.com.au/clicksurvey
-Status: PREPARED, NOT DEPLOYED.
+LIVE: https://clickecommerce.com.au/clicksurvey/
+Login: https://clickecommerce.com.au/clicksurvey/login
+Instructions: https://clickecommerce.com.au/clicksurvey/admin/help
+Administrator and approved test recipient: supplied in the private access file.
+The administrator password is supplied separately, outside GitHub.
 
-Completed locally
-- Added installation-path support to app routing, links, forms, redirects,
-  session cookies, worker invitation/unsubscribe URLs and the Node.js client.
-- Corrected malformed form actions from the earlier security-token insertion.
-  Rendered HTML tests now validate exact actions and token placement in forms.
-- Added USER-GUIDE.txt, an authenticated in-app help page and guide download.
-- Added visible survey IDs, Open survey and Export CSV actions; removed the
-  unsupported Paused option and corrected misleading field descriptions.
-- Applied current dependency patches. npm audit reports zero known findings.
-- 19 checks passed against a separate MariaDB test instance, including a real
-  local HTTP Node client, form submission, guide download and backup restore.
+Verified live
+- HTTPS login, secure path-scoped session cookie, persistent admin session,
+  dashboard, survey management, response screens, delivery and help download.
+- Node.js example client submitted a real HTTPS event; retry deduplicated.
+- WordPress example client ran inside the existing WordPress installation via
+  WP-CLI, submitted a real HTTPS event, and deduplicated its retry.
+- Both invitations were sent by the supervised worker and confirmed received
+  in the approved Outlook mailbox. No customer recipients were used.
+- Private invitation completion, rejection of reuse, public submission and CSV
+  export containing both test responses.
+- Missing API keys rejected, cross-source requests rejected and CSRF enforced.
+- /health and /ready return 200. Main Click eCommerce homepage remains available.
+- Production database snapshot saved privately on the host, copied off-server
+  to the local ignored backups directory, and restored into an isolated local
+  database. Counts: 1 survey, 2 questions, 2 events, 2 invites, 2 responses, 4 answers.
+- All 19 automated tests passed against a fresh isolated MariaDB instance,
+  including database dump/restore. npm audit: zero known vulnerabilities.
 
-Access blockers
-- Existing configured SSH destination s06ee.syd5.hostingplatform.net.au:2683
-  timed out. The requested domain resolved to 43.250.142.26; SSH connection
-  attempts to that address on the known hosting port and port 22 timed out.
-- No authenticated browser hosting session is available to this task.
-- The project's local .env still has an unusable database root login and example
-  SMTP settings. These cannot be treated as production credentials.
-- The administrator/test email and the correct hosting account remain unconfirmed.
+Hosting
+- VentraIP account clickeco; source /home/clickeco/clicksurvey outside webroot.
+- Node.js 22.23.4, MariaDB 11.4.13, dedicated restricted runtime database user.
+- LiteSpeed proxies /clicksurvey to the loopback-only Node web service on 43187.
+- Separate web and worker processes, single-instance locks and minute watchdogs.
+- Daily database snapshot scheduled; operational details in LIVE-OPERATIONS.txt.
+- Sender: ClickSurvey <surveys@clickecommerce.com.au>, authenticated TLS SMTP.
+- Existing Click eCommerce WordPress routing and other hosted apps retained.
 
-No production files, databases, mail accounts or DNS records were changed.
-No real invitation email was sent. Do not interpret this file or the planned
-URL in the user guide as confirmation that the application is publicly running.
-
-To finish when hosting access is supplied
-1. Inspect Node/runtime, database version, document root and existing /clicksurvey
-   route; back up anything already there before replacing it.
-2. Install source outside the public document root and route only /clicksurvey
-   to the app, retaining the prefix as described in README.md.
-3. Configure BASE_URL=https://clickecommerce.com.au/clicksurvey, NODE_ENV=production,
-   the trusted proxy hop count, unique session secret, working database and SMTP.
-4. Back up the target database, run db:migrate, provision the approved admin,
-   create website-specific keys and install them only in source-site secrets.
-5. Start supervised web and worker processes and verify /clicksurvey/health,
-   /clicksurvey/ready, login, actual inbox delivery, completion and guide download.
-6. Verify the original clickecommerce.com.au homepage still works, then test the
-   authorized WordPress/Node.js business hooks with a recipient the user controls.
-
-Required input: working hosting access or an authenticated cPanel session, secure
-database/SMTP configuration location, and confirmed admin/test email address.
+Ready for configuration and use
+- Customer feedback - starter survey is left Draft, with two questions and
+  clearly labelled deployment-test responses. Activate it or create a survey.
+- Deployment-test API keys are Disabled and automation rules Inactive.
+- Create production clients/rules and connect the actual purchase/completion
+  hooks on each originating website. No business-specific customer trigger was
+  installed automatically during verification.
+- Continue reviewing delivery failures, capacity and backups. Live acceptance
+  checks establish functionality; they are not a high-volume load test.
