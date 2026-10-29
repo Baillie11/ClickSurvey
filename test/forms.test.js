@@ -44,6 +44,7 @@ test("rendered forms have valid prefixed actions and a token inside each form", 
     survey,
     question,
     questions: [question],
+    choices: require("../public/question-logic").choices,
     surveys: [survey],
     clients: [{ id: 56, status: "Active", client_name: "Test" }],
     invites: [
@@ -90,6 +91,7 @@ test("rendered forms have valid prefixed actions and a token inside each form", 
     const html = ejs.render(
       fs.readFileSync(path.join(__dirname, "../views", file), "utf8"),
       locals,
+      { filename: path.join(__dirname, "../views", file) },
     );
     const tree = parseFragment(html),
       forms = nodes(tree, "form");

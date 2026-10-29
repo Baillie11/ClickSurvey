@@ -1,8 +1,8 @@
 <div class="row g-4">
-  <div class="col-md-3"><div class="card p-3"><h5>Surveys</h5><p class="display-6"><%= stats.surveyCount %></p></div></div>
-  <div class="col-md-3"><div class="card p-3"><h5>Active</h5><p class="display-6"><%= stats.activeCount %></p></div></div>
-  <div class="col-md-3"><div class="card p-3"><h5>Responses</h5><p class="display-6"><%= stats.responseCount %></p></div></div>
-  <div class="col-md-3"><div class="card p-3"><h5>Invites</h5><p class="display-6"><%= stats.inviteCount %></p></div></div>
+  <div class="col-md-3"><a class="card p-3 dashboard-card" href="<%= appPath %>/admin/surveys"><h5>Surveys</h5><p class="display-6"><%= stats.surveyCount %></p><span>View all surveys →</span></a></div>
+  <div class="col-md-3"><a class="card p-3 dashboard-card" href="<%= appPath %>/admin/surveys?status=Active"><h5>Active</h5><p class="display-6"><%= stats.activeCount %></p><span>View active surveys →</span></a></div>
+  <div class="col-md-3"><a class="card p-3 dashboard-card" href="<%= appPath %>/admin/responses"><h5>Responses</h5><p class="display-6"><%= stats.responseCount %></p><span>View submitted answers →</span></a></div>
+  <div class="col-md-3"><a class="card p-3 dashboard-card" href="<%= appPath %>/admin/delivery"><h5>Invites</h5><p class="display-6"><%= stats.inviteCount %></p><span>View invitation delivery →</span></a></div>
 </div>
 <div class="row mt-4">
   <div class="col-lg-8">
@@ -11,6 +11,7 @@
     </div>
     <div class="card p-4 mb-4">
       <h4>Quick actions</h4>
+      <p class="text-muted">To see an uncompleted survey, choose Manage Surveys, then Preview blank survey. Preview answers are never saved.</p>
       <div class="d-flex flex-wrap gap-2">
         <a class="btn btn-primary" href="<%= appPath %>/admin/surveys">Manage Surveys</a>
         <a class="btn btn-outline-primary" href="<%= appPath %>/admin/api-clients">API Clients</a>
@@ -21,12 +22,12 @@
     <div class="card p-4 mb-4">
       <h4>Recent Responses</h4>
       <div class="table-responsive">
-        <table class="table table-sm">
+        <table class="table table-sm table-hover response-table">
           <thead><tr><th>ID</th><th>Survey</th><th>Recipient</th><th>Submitted</th></tr></thead>
           <tbody>
             <% recentResponses.forEach(r => { %>
-              <tr>
-                <td><a href="<%= appPath %>/admin/responses/<%= r.id %>"><%= r.id %></a></td>
+              <tr class="response-row">
+                <td><a class="response-link" aria-label="View response <%= r.id %> for <%= r.title %>" href="<%= appPath %>/admin/responses/<%= r.id %>"><%= r.id %></a></td>
                 <td><%= r.title %></td>
                 <td><%= r.recipient_name || r.recipient_email || 'Guest' %></td>
                 <td><%= new Date(r.submitted_at).toLocaleString() %></td>

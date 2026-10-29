@@ -1,0 +1,22 @@
+Puzzle Path ClickSurvey Connector 1.1.0
+
+In WordPress Settings -> ClickSurvey, set Sender name and Email subject,
+then Save connection. Example: Puzzle Path / How was your Puzzle Path adventure?
+Blank values use the matching survey's ClickSurvey email settings.
+The authenticated sending email address remains unchanged.
+
+Preferences are captured for newly queued completions and test invitations.
+Already queued requests keep their original payload so retries remain safe.
+No historical completions are added and the 30-day customer limit is unchanged.
+
+Deployment order:
+1. Deploy the matching ClickSurvey server code, run npm run db:migrate,
+   and restart the web application and delivery worker.
+2. Upload the 1.1.0 ZIP through WordPress Plugins -> Add New -> Upload Plugin,
+   replacing the existing Puzzle Path ClickSurvey Connector.
+3. Save the desired sender name and subject in Settings -> ClickSurvey.
+4. Use Send test invitation with your own email and check the resulting headers.
+
+The existing API key, activation date and outbox are preserved on upgrade.
+No collector change is required: it forwards each stored payload unchanged.
+This package has not been installed on the live site.

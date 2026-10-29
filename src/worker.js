@@ -1,4 +1,6 @@
 const nodemailer = require("nodemailer");
+const addressparser = require("nodemailer/lib/addressparser");
+const { emailHeader } = require("./validation");
 const { transaction } = require("./models/db");
 function escapeHtml(value) {
   return String(value ?? "").replace(
@@ -32,7 +34,7 @@ async function deliverOne(db, transport) {
   // avoiding an automatic duplicate after an ambiguous SMTP acknowledgement.
   const invite = await transaction(db, async (connection) => {
     const [rows] = await connection.query(
-      "SELECT si.*,s.title AS survey_title,s.status AS survey_status FROM survey_invites si JOIN surveys s ON s.id=si.survey_id WHERE si.status IN ('Pending','Retry') AND si.due_at <= UTC_TIMESTAMP() ORDER BY si.due_at,si.id LIMIT 1 FOR UPDATE SKIP LOCKED",
+      "SELECT si.*,s.title AS survey_title,s.status AS survey_status,s.email_subject,s.email_sender_name,s.brand_name FROM survey_invites si JOIN surveys s ON s.id=si.survey_id WHERE si.status IN ('Pending','Retry') AND si.due_at <= UTC_TIMESTAMP() ORDER BY si.due_at,si.id LIMIT 1 FOR UPDATE SKIP LOCKED",
     );
     if (!rows.length) return null;
     const row = rows[0];
@@ -62,12 +64,23 @@ async function deliverOne(db, transport) {
   const base = process.env.BASE_URL.replace(/\/$/, "");
   const url = `${base}/r/${invite.invite_token}`;
   const unsubscribe = `${base}/unsubscribe/${invite.invite_token}`;
+  // Older events may contain arbitrary metadata; use only valid email overrides.
+  const emailSettings = JSON.parse(invite.metadata_json || "{}").invitationEmail || {};
+  function override(field) {
+    try { return emailHeader(emailSettings[field], field); } catch { return null; }
+  }
+  const senderName = override("senderName") || invite.email_sender_name || invite.brand_name;
   let info;
   try {
     info = await transport.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: senderName
+        ? {
+            name: senderName,
+            address: addressparser(process.env.EMAIL_FROM, { flatten: true })[0].address,
+          }
+        : process.env.EMAIL_FROM,
       to: invite.recipient_email,
-      subject: `Quick feedback about your ${invite.source_app} experience`,
+      subject: override("subject") || invite.email_subject || `Quick feedback about your ${invite.source_app} experience`,
       messageId: `<clicksurvey-${invite.id}-${invite.invite_token}@${new URL(base).hostname}>`,
       text: `Hi ${invite.recipient_name || "there"},\nPlease share your feedback: ${url}\nUnsubscribe from future surveys: ${unsubscribe}`,
       html: `<p>Hi ${escapeHtml(invite.recipient_name || "there")},</p><p>We would love your feedback on ${escapeHtml(invite.survey_title)}.</p><p><a href="${escapeHtml(url)}">Complete your survey</a></p><p><a href="${escapeHtml(unsubscribe)}">Unsubscribe from future surveys</a></p>`,

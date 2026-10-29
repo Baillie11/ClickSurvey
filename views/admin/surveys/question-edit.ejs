@@ -19,6 +19,7 @@
     </select></div>
     <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="required" value="1" <%= question.required ? 'checked' : '' %> /><label class="form-check-label">Required</label></div>
     <div class="mb-3"><label class="form-label">Options JSON</label><textarea name="options_json" class="form-control" rows="2"><%= question.options_json %></textarea></div>
+    <%- include('condition', { editing: question }) %>
     <button class="btn btn-primary">Save Question</button>
   </form>
 </div>

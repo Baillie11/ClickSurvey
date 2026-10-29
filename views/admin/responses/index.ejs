@@ -4,8 +4,8 @@
     <thead><tr><th>ID</th><th>Survey</th><th>Recipient</th><th>Source</th><th>Event</th><th>Submitted</th></tr></thead>
     <tbody>
       <% responses.forEach(r => { %>
-        <tr>
-          <td><a href="<%= appPath %>/admin/responses/<%= r.id %>"><%= r.id %></a></td>
+        <tr class="response-row">
+          <td><a class="response-link" aria-label="View response <%= r.id %> for <%= r.survey_title %>" href="<%= appPath %>/admin/responses/<%= r.id %>"><%= r.id %></a></td>
           <td><%= r.survey_title %></td>
           <td><%= r.recipient_name || r.recipient_email || 'Guest' %></td>
           <td><%= r.source_app || 'N/A' %></td>

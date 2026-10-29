@@ -37,6 +37,10 @@ The original local configuration encountered a server requesting `auth_gssapi_cl
 
 ## Surveys and API clients
 
+Questions support conditional branching on an earlier Yes/No, multiple-choice, dropdown, checkbox or rating answer. In **Questions → Add/Edit → Conditional question**, select the earlier question and matching answer, or leave **Always show** selected. For example, show one follow-up when question 1 is Yes and another when it is No. Repeat a condition for several follow-ups; follow-ups can themselves control later questions. Checkbox conditions mean the option is selected. Each question supports one condition.
+
+Both public survey links and email invitations update immediately as answers change (JavaScript required). Hidden answers are cleared, excluded from submissions and ignored by server validation, including required questions. A hidden parent also hides its descendants. Before archiving a parent or removing an option used by a condition, update its dependent questions. Existing questions remain unconditional. Deployments must run `npm run db:migrate` to apply `003-question-logic` before restarting the application.
+
 Create an Active survey with valid questions. Create an API client whose **name exactly matches `sourceApp`**, and supply its allowed survey IDs, visible in survey edit URLs. Keys are random, shown once and stored as hashes with an indexed identifier. Empty survey permissions grant no survey access. Disable a key to revoke access.
 
 Create an Active automation rule matching the source and event type. Its target survey must be Active and permitted by the key. The newest matching rule wins. Delays from 0 to 43,200 minutes are supported. Invitations expire 30 days after their scheduled send time. Archive a question rather than deleting its historical answers.

@@ -1,3 +1,4 @@
+const { visibleQuestions, choices } = require("../public/question-logic");
 function bad(message, status = 400) {
   return Object.assign(new Error(message), { status });
 }
@@ -12,6 +13,11 @@ function text(value, name, max = 255, optional = false) {
   )
     throw bad(`Invalid ${name}`);
   return value.trim();
+}
+function emailHeader(value, name) {
+  if (typeof value === "string" && /[\r\n]/.test(value))
+    throw bad("Invalid " + name + ": use a single line");
+  return text(typeof value === "string" ? value.trim() : value, name, 255, true);
 }
 function email(value) {
   const result = text(value, "email", 254).toLowerCase();
@@ -53,6 +59,16 @@ function eventInput(body, key) {
     Buffer.byteLength(JSON.stringify(metadata)) > 16000
   )
     throw bad("Invalid metadata (object, maximum 16KB)");
+  if (Object.hasOwn(metadata, "invitationEmail")) {
+    const settings = metadata.invitationEmail;
+    if (!settings || typeof settings !== "object" || Array.isArray(settings))
+      throw bad("Invalid invitationEmail settings");
+    for (const [field, value] of Object.entries(settings)) {
+      if (!["subject", "senderName"].includes(field))
+        throw bad("Unknown invitationEmail setting");
+      emailHeader(value, field);
+    }
+  }
   return { eventId, sourceApp, eventType, recipient, metadata };
 }
 const types = [
@@ -94,7 +110,8 @@ function questionInput(body) {
   } else body.options_json = null;
 }
 function answersFor(questions, body) {
-  return questions.map((q) => {
+  const visible = visibleQuestions(questions, body);
+  return questions.filter((q) => visible.has(String(q.id))).map((q) => {
     let value = body[`question_${q.id}`];
     const multi = q.question_type === "checkboxes";
     if (multi)
@@ -136,6 +153,15 @@ function answersFor(questions, body) {
     };
   });
 }
+function questionCondition(body, earlierQuestions) {
+  if (!body.condition_question_id) return { condition_question_id: null, condition_value: null };
+  const id = integer(body.condition_question_id, "condition question");
+  const parent = earlierQuestions.find((q) => Number(q.id) === id);
+  if (!parent) throw bad("Choose an earlier active question in this survey");
+  if (typeof body.condition_value !== "string" || !choices(parent).includes(body.condition_value))
+    throw bad("Choose a valid answer for the condition question");
+  return { condition_question_id: id, condition_value: body.condition_value };
+}
 function csvCell(value) {
   let s = String(value ?? "");
   if (/^[\s\u0000-\u001f]*[=+@-]/.test(s) || /^[\t\r\n]/.test(s)) s = "'" + s;
@@ -143,11 +169,13 @@ function csvCell(value) {
 }
 module.exports = {
   bad,
+  emailHeader,
   text,
   email,
   integer,
   eventInput,
   questionInput,
+  questionCondition,
   answersFor,
   csvCell,
 };

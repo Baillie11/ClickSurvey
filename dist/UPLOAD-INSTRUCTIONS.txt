@@ -1,0 +1,83 @@
+CLICK SURVEY - CONDITIONAL QUESTIONS UPDATE
+Prepared 29 October 2026
+
+This is the Click Survey application update, not a WordPress plugin.
+The ZIP contains the current application source, including the existing email
+settings work and the new conditional question feature. It contains no .env,
+credentials, database records, test emails, backups or node_modules.
+
+UPLOAD LOCATION
+/home/clickeco/clicksurvey
+Do not extract into public_html or a WordPress plugins directory.
+The files are at the ZIP root: app.js, src/, views/, public/, etc.
+
+1. Before uploading, take a database backup and a copy of the existing application
+   files. Keep the existing production .env and node_modules directory in place.
+   Existing test emails and survey responses do not need to be deleted.
+
+2. Arrange a short maintenance window. Pause the web and worker watchdog cron
+   entries and stop only the Click Survey web and worker processes. The private
+   watchdog scripts are in /home/clickeco/.config/clicksurvey. Other applications
+   share this hosting account; do not stop all Node processes or other cron jobs.
+   If you cannot manage these processes, ask hosting support to perform steps
+   2, 4 and 5 using these instructions.
+
+3. In cPanel File Manager, upload the ZIP into /home/clickeco/clicksurvey and
+   extract it there, overwriting the matching application files. Do not delete
+   the folder first. Preserve .env, node_modules, backups, and private hosting
+   configuration. No dependency changes are required for this update.
+
+4. Apply the database migration BEFORE restarting the app. Choose ONE method:
+
+   A. cPanel phpMyAdmin (manual upload option):
+      Select the existing clickeco_clicksurvey database. Import the included
+      MANUAL-MIGRATION.sql file. It is written for the documented live MariaDB
+      server and the existing hardened Click Survey installation. It converts
+      the three internal tables to InnoDB, adds four nullable columns and
+      records migrations 002 and 003. It does not delete
+      survey data. Stop and resolve any SQL error before proceeding.
+
+   B. Terminal (standard application migration):
+      cd /home/clickeco/clicksurvey
+      Use the existing dedicated migration database account via DB_USER and
+      DB_PASSWORD in the process environment, without replacing production .env.
+      Run with the hosting account's low-thread settings:
+      UV_THREADPOOL_SIZE=1 NODE_OPTIONS="--v8-pool-size=1 --max-old-space-size=256" /opt/alt/alt-nodejs22/root/usr/bin/node scripts/migrate.js
+      Expect: Database migrations complete
+      Restore the runtime environment before restarting services. The runtime
+      database account does not have schema modification permissions.
+
+5. Resume the original watchdog cron entries and invoke web-watchdog.sh and
+   worker-watchdog.sh, or allow their next scheduled run. Keep using the existing
+   loopback proxy configuration. Do NOT press Start in cPanel's Node selector;
+   that is not how this installation is supervised.
+
+6. Verify these URLs return HTTP 200 and the indicated status:
+   https://clickecommerce.com.au/clicksurvey/health  -> ok
+   https://clickecommerce.com.au/clicksurvey/ready   -> ready
+   The worker heartbeat may take a minute to refresh.
+
+7. Sign in and open a survey's Questions page. Add a Yes / No question first.
+   Add or edit a follow-up. In Conditional question, select the earlier question
+   and Yes. Add another follow-up with the same parent and No. Open the survey
+   and check that changing Yes to No swaps the visible questions. Required
+   hidden questions must not block submission. Test both a public survey link
+   and an available test invitation if you use both methods.
+
+USING CONDITIONAL QUESTIONS
+- Always show preserves the existing behaviour.
+- A condition can match an earlier Yes/No, choice, checkbox or rating answer.
+- Add several questions with the same condition for a longer branch.
+- Conditional questions can themselves control later questions.
+- Hidden questions and their descendants are skipped; hidden answers are cleared.
+- Update dependent conditions before archiving their parent or removing an option.
+- Respondents need JavaScript enabled for conditional surveys.
+
+AFTER UPDATING
+Remove the uploaded ZIP from the server after successful extraction. Retain your
+backup privately. If the update fails, keep services paused and restore the
+previous application and database together from the pre-update backup.
+
+The application was deployed to VentraIP on 29 October 2026. This revised package
+includes the compatibility fix for legacy internal MyISAM tables. See the chat
+for final verification results.

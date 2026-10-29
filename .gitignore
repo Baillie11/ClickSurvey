@@ -9,3 +9,8 @@ coverage/
 Thumbs.db
 backups/
 *.sql.gz
+# Local deployment bundles, screenshots and machine-specific packaging manifest
+dist/*.zip
+dist/*.jpg
+dist/*.png
+dist/package-manifest.json

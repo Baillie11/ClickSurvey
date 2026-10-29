@@ -274,3 +274,9 @@ invitations can still be delivered. Pausing a source connector also leaves any
 invitations already accepted by ClickSurvey in its delivery queue. Consult the
 operator if already accepted invitations must be cancelled.
 Full connector operation, recovery and key rotation: integrations/SETUP.txt.
+
+INVITATION EMAIL BRANDING
+In Create Survey or Edit Survey, use Invitation email to set the Sender name
+and Email subject. The sender name defaults to Brand Name, then the configured
+sender. The sending email address remains the configured address. A blank
+subject keeps the automatic source-app subject. Changes affect unsent invitations.

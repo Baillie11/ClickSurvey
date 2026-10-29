@@ -3,6 +3,7 @@ const router = express.Router();
 const { requireAdmin } = require("../security");
 const {
   text,
+  emailHeader,
   email: validEmail,
   integer,
   bad,
@@ -29,6 +30,8 @@ router.use((req, res, next) => {
         b[k] = text(b[k], k, 10000, true);
       for (const k of ["brand_name", "logo_url", "footer_text"])
         b[k] = text(b[k], k, 255, true);
+      for (const k of ["email_subject", "email_sender_name"])
+        b[k] = emailHeader(b[k], k);
       if (b.logo_url) {
         let url;
         try {
@@ -122,10 +125,22 @@ router.get("/", async (req, res) => {
 });
 
 router.get("/surveys", async (req, res) => {
+  const status = req.query.status === "Active" ? "Active" : "";
   const [surveys] = await global.db.execute(
-    "SELECT * FROM surveys ORDER BY updated_at DESC",
+    status ? "SELECT * FROM surveys WHERE status = ? ORDER BY updated_at DESC" : "SELECT * FROM surveys ORDER BY updated_at DESC",
+    status ? [status] : [],
   );
-  res.render("admin/surveys/index", { title: "Surveys", surveys });
+  res.render("admin/surveys/index", { title: "Surveys", surveys, status });
+});
+
+router.get("/surveys/:id/preview", async (req, res) => {
+  const [rows] = await global.db.execute("SELECT * FROM surveys WHERE id = ?", [req.params.id]);
+  if (!rows.length) throw bad("Survey not found", 404);
+  const [questions] = await global.db.execute(
+    "SELECT * FROM survey_questions WHERE survey_id = ? AND archived = 0 ORDER BY sort_order,id",
+    [req.params.id],
+  );
+  res.render("public/survey", { title: "Survey preview", survey: rows[0], questions, error: null, preview: true });
 });
 
 router.get("/surveys/new", (req, res) => {
@@ -147,6 +162,8 @@ router.post("/surveys", async (req, res) => {
     logo_url,
     primary_colour,
     footer_text,
+    email_subject,
+    email_sender_name,
   } = req.body;
   if (!survey_key || !title) {
     return res.render("admin/surveys/new", {
@@ -167,7 +184,7 @@ router.post("/surveys", async (req, res) => {
     });
   }
   await global.db.execute(
-    "INSERT INTO surveys (user_id, survey_key, title, description, thank_you_message, status, brand_name, logo_url, primary_colour, footer_text, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())",
+    "INSERT INTO surveys (user_id, survey_key, title, description, thank_you_message, status, brand_name, logo_url, primary_colour, footer_text, email_subject, email_sender_name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())",
     [
       req.session.user.id,
       survey_key,
@@ -179,6 +196,8 @@ router.post("/surveys", async (req, res) => {
       logo_url,
       primary_colour,
       footer_text,
+      email_subject,
+      email_sender_name,
     ],
   );
   res.redirect("/admin/surveys");
@@ -208,9 +227,11 @@ router.post("/surveys/:id", async (req, res) => {
     logo_url,
     primary_colour,
     footer_text,
+    email_subject,
+    email_sender_name,
   } = req.body;
   await global.db.execute(
-    "UPDATE surveys SET survey_key = ?, title = ?, description = ?, thank_you_message = ?, status = ?, brand_name = ?, logo_url = ?, primary_colour = ?, footer_text = ?, updated_at = UTC_TIMESTAMP() WHERE id = ?",
+    "UPDATE surveys SET survey_key = ?, title = ?, description = ?, thank_you_message = ?, status = ?, brand_name = ?, logo_url = ?, primary_colour = ?, footer_text = ?, email_subject = ?, email_sender_name = ?, updated_at = UTC_TIMESTAMP() WHERE id = ?",
     [
       survey_key,
       title,
@@ -221,6 +242,8 @@ router.post("/surveys/:id", async (req, res) => {
       logo_url,
       primary_colour,
       footer_text,
+      email_subject,
+      email_sender_name,
       req.params.id,
     ],
   );

@@ -41,6 +41,7 @@
         <small class="form-text text-muted">For multiple choice, checkboxes, or dropdowns, enter options as a JSON array. Example: ["Very Satisfied", "Satisfied", "Neutral", "Dissatisfied"]</small>
       </div>
     </div>
+    <%- include('condition', { editing: null }) %>
     <button class="btn btn-primary mt-3">Add Question</button>
   </form>
 </div>
@@ -53,7 +54,11 @@
         <% questions.forEach(q => { %>
           <tr>
             <td><%= q.sort_order %></td>
-            <td><%= q.question_text %></td>
+            <td><%= q.question_text %>
+              <% if (q.condition_question_id) { const parent = questions.find(p => p.id === q.condition_question_id); %>
+                <div class="small text-muted">Only when “<%= parent?.question_text || 'Unavailable question' %>” = “<%= q.condition_value %>”</div>
+              <% } %>
+            </td>
             <td><%= q.question_type %></td>
             <td><%= q.required ? 'Yes' : 'No' %></td>
             <td>

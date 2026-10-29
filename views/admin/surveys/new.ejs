@@ -34,6 +34,18 @@
       <small class="form-text text-muted"><strong>Draft:</strong> Not yet live. <strong>Active:</strong> Ready to receive responses. <strong>Archived:</strong> Hidden from active list.</small>
     </div>
     <hr />
+    <h5>Invitation email</h5>
+    <div class="mb-3">
+      <label for="email_sender_name" class="form-label">Sender name</label>
+      <input id="email_sender_name" name="email_sender_name" class="form-control" maxlength="255" placeholder="e.g., Your Company Name" value="<%= survey.email_sender_name || '' %>" />
+      <small class="form-text text-muted">The name recipients see in their inbox. Leave blank to use your Brand Name, or the default sender if no brand is set. The sending email address stays the same.</small>
+    </div>
+    <div class="mb-3">
+      <label for="email_subject" class="form-label">Email subject</label>
+      <input id="email_subject" name="email_subject" class="form-control" maxlength="255" placeholder="e.g., How was your experience with Your Company?" value="<%= survey.email_subject || '' %>" />
+      <small class="form-text text-muted">Used exactly as entered for future invitations. Leave blank to use: Quick feedback about your [source app] experience.</small>
+    </div>
+    <hr />
     <h5>Branding</h5>
     <div class="mb-3">
       <label class="form-label">Brand Name</label>

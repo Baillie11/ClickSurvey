@@ -1,0 +1,17 @@
+<fieldset class="col-12 mb-3" data-condition-editor>
+  <legend class="fs-6">Conditional question</legend>
+  <label class="form-label" for="condition-question">Show this question only when</label>
+  <select id="condition-question" name="condition_question_id" class="form-select mb-2">
+    <option value="">Always show</option>
+    <% const previous = editing ? questions.slice(0, questions.findIndex(q => q.id === editing.id)) : questions; %>
+    <% previous.filter(q => choices(q).length).forEach(q => { %>
+      <option value="<%= q.id %>" data-values="<%= JSON.stringify(choices(q)) %>" <%= String(editing?.condition_question_id) === String(q.id) ? 'selected' : '' %>><%= q.sort_order %>. <%= q.question_text %></option>
+    <% }) %>
+  </select>
+  <label class="form-label" for="condition-value">Has this answer (or includes this checkbox option)</label>
+  <select id="condition-value" name="condition_value" class="form-select" data-saved-value="<%= editing?.condition_value || '' %>">
+    <option value="<%= editing?.condition_value || '' %>"><%= editing?.condition_value || 'Choose an answer…' %></option>
+  </select>
+  <small class="text-muted">Choose an earlier Yes/No, choice or rating question. Hidden questions are skipped, even when marked required. Add more questions with the same condition for a longer branch.</small>
+</fieldset>
+<script src="<%= appPath %>/question-condition-editor.js" defer></script>

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Puzzle Path ClickSurvey Connector
  * Description: Queues feedback invitations for new completed paid quests, with retries and a 30-day customer limit.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Click eCommerce
  */
 defined('ABSPATH') || exit;
@@ -53,10 +53,28 @@ add_action('init', function() {
     if (!wp_next_scheduled('pp_cs_tick')) wp_schedule_event(time() + 60, 'pp_cs_minute', 'pp_cs_tick');
 });
 
+// Snapshot email preferences when queued; retries must keep an identical payload.
+function pp_cs_email_metadata($metadata) {
+    $c = pp_cs_config();
+    $email = array();
+    foreach (array('email_subject' => 'subject', 'email_sender_name' => 'senderName') as $key => $field) {
+        if (!empty($c[$key])) $email[$field] = $c[$key];
+    }
+    if ($email) $metadata['invitationEmail'] = (object) $email;
+    return (object) $metadata;
+}
+function pp_cs_email_setting($value) {
+    if (!is_string($value) || preg_match('/[\x00-\x1f\x7f]/', $value))
+        wp_die('Email subject and sender name must be single-line text.');
+    $value = trim($value);
+    $length = preg_match_all('/./us', $value);
+    if ($length === false || $length > 255) wp_die('Email subject and sender name must be no longer than 255 characters.');
+    return $value;
+}
 function pp_cs_payload($row, $event_id) {
     return array('eventId' => $event_id, 'sourceApp' => 'Puzzle Path', 'eventType' => 'hunt_completed',
         'recipient' => array('email' => strtolower(trim($row->customer_email)), 'name' => (string)$row->customer_name),
-        'metadata' => (object) array('bookingId' => (string)$row->id));
+        'metadata' => pp_cs_email_metadata(array('bookingId' => (string)$row->id)));
 }
 function pp_cs_send($config, $payload) {
     if (!pp_cs_ready($config)) return new WP_Error('configuration', 'Configure the ClickSurvey connection.');
@@ -173,6 +191,9 @@ function pp_cs_settings() {
     echo '<table class="form-table"><tr><th><label for="pp-cs-url">ClickSurvey URL</label></th><td><input class="regular-text" id="pp-cs-url" name="url" type="url" required value="'.esc_attr($c['url']??'https://clickecommerce.com.au/clicksurvey').'"></td></tr>';
     echo '<tr><th><label for="pp-cs-key">API key</label></th><td><input class="regular-text" id="pp-cs-key" name="key" type="password" autocomplete="new-password" value=""><p>'.(!empty($c['key'])?'Configured. Leave blank to keep the current key.':'Not configured. Paste the Puzzle Path key.').'</p></td></tr>';
     echo '<tr><th><label for="pp-cs-enabled">Automatic requests</label></th><td><label><input id="pp-cs-enabled" name="enabled" type="checkbox" value="1" '.checked(!empty($c['enabled']),true,false).'> Enable new quest-completion requests</label></td></tr></table>';
+    echo '<h2>Invitation email</h2><p>These settings apply to newly queued invitations, including tests. Leave blank to use the ClickSurvey survey settings. The sending email address stays the same.</p>';
+    echo '<table class="form-table"><tr><th><label for="pp-cs-sender">Sender name</label></th><td><input class="regular-text" id="pp-cs-sender" name="email_sender_name" maxlength="255" placeholder="Puzzle Path" value="'.esc_attr($c['email_sender_name']??'').'"></td></tr>';
+    echo '<tr><th><label for="pp-cs-subject">Email subject</label></th><td><input class="large-text" id="pp-cs-subject" name="email_subject" maxlength="255" placeholder="How was your Puzzle Path adventure?" value="'.esc_attr($c['email_subject']??'').'"></td></tr></table>';
     submit_button('Save connection');echo '</form>';
     echo '<p>Activated (UTC): '.esc_html($c['activated_at']??'Not activated').'<br>Last worker run (UTC): '.esc_html(get_option('pp_cs_last_run','Not run yet')).'</p>';
     if(get_option('pp_cs_last_error'))echo '<p>'.esc_html(get_option('pp_cs_last_error')).'</p>';
@@ -187,6 +208,8 @@ add_action('admin_post_pp_cs_save',function(){
     $c['url']=untrailingslashit(esc_url_raw(wp_unslash($_POST['url']??'')));
     $key=trim(wp_unslash($_POST['key']??''));if($key!=='')$c['key']=$key;
     if(!pp_cs_ready($c))wp_die('Use the live ClickSurvey HTTPS URL and a valid Puzzle Path API key.');
+    foreach (array('email_subject', 'email_sender_name') as $field)
+        $c[$field] = pp_cs_email_setting(wp_unslash($_POST[$field] ?? ''));
     $c['enabled']=!empty($_POST['enabled']);
     if($c['enabled']&&empty($c['activated_at']))$c['activated_at']=gmdate('Y-m-d H:i:s');
     update_option('pp_cs_config',$c,false);
@@ -197,7 +220,7 @@ add_action('admin_post_pp_cs_test',function(){
     check_admin_referer('pp_cs_test');$email=sanitize_email(wp_unslash($_POST['email']??''));if(!is_email($email))wp_die('A valid test email is required.');
     $event_id='connection_test:'.wp_generate_uuid4();
     $payload=array('eventId'=>$event_id,'sourceApp'=>'Puzzle Path','eventType'=>'hunt_completed',
-        'recipient'=>array('email'=>$email,'name'=>'Puzzle Path connection test'),'metadata'=>(object)array('purpose'=>'Connection verification'));
+        'recipient'=>array('email'=>$email,'name'=>'Puzzle Path connection test'),'metadata'=>pp_cs_email_metadata(array('purpose'=>'Connection verification')));
     global $wpdb;$ok=(bool)$wpdb->insert(pp_cs_table(),array('event_key'=>$event_id,'booking_id'=>0,'email'=>$email,'payload'=>wp_json_encode($payload),'status'=>'pending','attempts'=>0,'next_attempt'=>gmdate('Y-m-d H:i:s'),'created_at'=>gmdate('Y-m-d H:i:s')));
     wp_safe_redirect(admin_url('options-general.php?page=puzzlepath-clicksurvey&test='.($ok?'sent':'failed')));exit;
 });

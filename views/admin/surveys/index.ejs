@@ -2,6 +2,8 @@
   <h1>Surveys</h1>
   <a class="btn btn-primary" href="<%= appPath %>/admin/surveys/new">New Survey</a>
 </div>
+<p>Use <strong>Preview blank survey</strong> to view the questions and try conditional answers without saving a response.</p>
+<% if (typeof status !== 'undefined' && status) { %><p>Showing Active surveys. <a href="<%= appPath %>/admin/surveys">Show all surveys</a></p><% } %>
 <div class="table-responsive">
   <table class="table table-hover">
     <thead><tr><th>ID</th><th>Title</th><th>Key</th><th>Status</th><th>Updated</th><th>Actions</th></tr></thead>
@@ -14,6 +16,7 @@
           <td><%= survey.status %></td>
           <td><%= new Date(survey.updated_at).toLocaleDateString() %></td>
           <td>
+            <a class="btn btn-sm btn-outline-primary" href="<%= appPath %>/admin/surveys/<%= survey.id %>/preview">Preview blank survey</a>
             <a class="btn btn-sm btn-outline-secondary" href="<%= appPath %>/admin/surveys/<%= survey.id %>/edit">Edit</a>
             <a class="btn btn-sm btn-outline-secondary" href="<%= appPath %>/admin/surveys/<%= survey.id %>/questions">Questions</a>
             <a class="btn btn-sm btn-outline-secondary" href="<%= appPath %>/admin/surveys/<%= survey.id %>/responses/csv">Export CSV</a>

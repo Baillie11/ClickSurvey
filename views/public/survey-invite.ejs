@@ -2,10 +2,10 @@
   <h1><%= invite.source_app %> Survey</h1>
   <p class="text-muted">Hi <%= invite.recipient_name || invite.recipient_email %>, we’d appreciate your feedback.</p>
   <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
-  <form method="post" action="<%= appPath %>/r/<%= invite.invite_token %>">
+  <form method="post" action="<%= appPath %>/r/<%= invite.invite_token %>" data-survey-logic>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <% questions.forEach(question => { %>
-      <div class="mb-3">
+      <div class="mb-3" data-question-id="<%= question.id %>" data-condition-question-id="<%= question.condition_question_id || '' %>" data-condition-value="<%= question.condition_value || '' %>" <%= question.condition_question_id ? 'hidden' : '' %>>
         <label class="form-label"><%= question.question_text %><%= question.required ? ' *' : '' %></label>
         <% if (question.question_type === 'short_text') { %>
           <input type="text" name="question_<%= question.id %>" class="form-control" />
@@ -36,5 +36,8 @@
     <% }) %>
     <button class="btn btn-primary">Submit Feedback</button>
   </form>
+  <% if (questions.some(q => q.condition_question_id)) { %><noscript><p>Please enable JavaScript to see the follow-up questions for your answers.</p></noscript><% } %>
+  <script src="<%= appPath %>/question-logic.js" defer></script>
+  <script src="<%= appPath %>/survey-logic.js" defer></script>
   <footer class="mt-4 text-muted"><%= invite.footer_text || '' %></footer>
 </div>

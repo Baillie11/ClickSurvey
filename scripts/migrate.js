@@ -12,6 +12,15 @@ async function migrate(connection) {
     await connection.query(
       fs.readFileSync(path.join(__dirname, "../schema.sql"), "utf8"),
     );
+    // Older migrations inherited the host's default engine for these internal
+    // tables. Upgrade only these known tables; retain the guard for application data.
+    const [internalTables] = await connection.query(
+      "SELECT table_name FROM information_schema.tables WHERE table_schema=DATABASE() AND table_type='BASE TABLE' AND engine <> 'InnoDB' AND table_name IN ('schema_migrations','sessions','worker_state')",
+    );
+    for (const { table_name } of internalTables) {
+      if (["schema_migrations", "sessions", "worker_state"].includes(table_name))
+        await connection.query(`ALTER TABLE ${table_name} ENGINE=InnoDB`);
+    }
     const [engines] = await connection.query(
       "SELECT table_name FROM information_schema.tables WHERE table_schema=DATABASE() AND table_type='BASE TABLE' AND engine <> 'InnoDB'",
     );
@@ -20,18 +29,18 @@ async function migrate(connection) {
         "Convert existing tables to InnoDB before migration; transactional writes require InnoDB",
       );
     await connection.query(
-      "CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR(100) PRIMARY KEY, applied_at DATETIME NOT NULL)",
+      "CREATE TABLE IF NOT EXISTS schema_migrations (version VARCHAR(100) PRIMARY KEY, applied_at DATETIME NOT NULL) ENGINE=InnoDB",
     );
     await connection.query(
-      "CREATE TABLE IF NOT EXISTS sessions (session_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY, data MEDIUMTEXT NOT NULL, expires_at DATETIME NOT NULL, INDEX idx_session_expiry (expires_at))",
+      "CREATE TABLE IF NOT EXISTS sessions (session_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY, data MEDIUMTEXT NOT NULL, expires_at DATETIME NOT NULL, INDEX idx_session_expiry (expires_at)) ENGINE=InnoDB",
     );
     await connection.query(
-      "CREATE TABLE IF NOT EXISTS worker_state (id INT PRIMARY KEY, heartbeat_at DATETIME NOT NULL)",
+      "CREATE TABLE IF NOT EXISTS worker_state (id INT PRIMARY KEY, heartbeat_at DATETIME NOT NULL) ENGINE=InnoDB",
     );
     const [done] = await connection.query(
       "SELECT version FROM schema_migrations WHERE version = '001-hardening'",
     );
-    if (done.length) return;
+
     async function column(table, name, definition) {
       const [rows] = await connection.execute(
         "SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?",
@@ -50,6 +59,27 @@ async function migrate(connection) {
       if (!rows.length)
         await connection.query(`ALTER TABLE ${table} ADD ${definition}`);
     }
+    const [emailDone] = await connection.query(
+      "SELECT version FROM schema_migrations WHERE version = '002-survey-email'",
+    );
+    if (!emailDone.length) {
+      await column("surveys", "email_subject", "VARCHAR(255) NULL");
+      await column("surveys", "email_sender_name", "VARCHAR(255) NULL");
+      await connection.query(
+        "INSERT INTO schema_migrations VALUES ('002-survey-email', UTC_TIMESTAMP())",
+      );
+    }
+    const [logicDone] = await connection.query(
+      "SELECT version FROM schema_migrations WHERE version = '003-question-logic'",
+    );
+    if (!logicDone.length) {
+      await column("survey_questions", "condition_question_id", "INT NULL");
+      await column("survey_questions", "condition_value", "VARCHAR(255) NULL");
+      await connection.query(
+        "INSERT INTO schema_migrations VALUES ('003-question-logic', UTC_TIMESTAMP())",
+      );
+    }
+    if (done.length) return;
     await column("users", "is_admin", "TINYINT(1) NOT NULL DEFAULT 0");
     await column("api_clients", "key_id", "VARCHAR(32) NULL");
     await index("api_clients", "uq_key_id", "UNIQUE INDEX uq_key_id (key_id)");

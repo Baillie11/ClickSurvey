@@ -13,3 +13,9 @@ body {
 .footer-small { font-size: 0.9rem; color: #6c757d; }
 .form-label { font-weight: 600; }
 .hero-card { background: #fff; border: 1px solid #e9ecef; box-shadow: 0 1px 20px rgba(0,0,0,0.03); }
+.dashboard-card { color: var(--text); text-decoration: none; height: 100%; }
+.dashboard-card:hover { border-color: var(--primary); background: #eef5ff; }
+.dashboard-card:focus-visible, .response-link:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+.response-row { position: relative; }
+.response-link::after { content: ""; position: absolute; inset: 0; }
+.response-row:focus-within { outline: 2px solid var(--primary); outline-offset: -2px; }

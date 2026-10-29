@@ -1,4 +1,45 @@
-ClickSurvey deployment status - 24 October 2026
+ClickSurvey deployment status - updated 29 October 2026
+
+Dashboard navigation update - 29 October 2026
+- Deployed seven application files through authenticated VentraIP cPanel.
+- Dashboard cards link to all surveys, Active surveys, responses and delivery.
+- Whole response rows link to response details on dashboard and response list.
+- Administrator-only blank preview supports Draft/Active/Archived surveys and
+  conditional answers without a submission form or saved responses.
+- No database or dependency changes. Restarted only the ClickSurvey web process;
+  worker and existing cron jobs remained running.
+- SHA-256 hashes of all seven deployed files match the tested local source.
+- /health and /ready passed after restart. Local suite: 19 passed, 1 DB suite
+  skipped; additional preview authorization/filter/read-only regression passed.
+- Rollback files: /home/clickeco/.config/clicksurvey/before-dashboard-20261029/
+  application.tar.gz. Deployed ZIP retained beside it as deployed-update.zip.
+- Authenticated browser verification complete: all four cards open the expected
+  lists; Active shows only the two active surveys. Clicking the submitted-date
+  area of a recent-response row opens the correct response detail.
+- Active and archived survey previews render. Yes/No changes swap conditional
+  follow-up questions in preview; response count remained four after checking.
+- Left the blank Puzzle Path preview open for the administrator.
+
+Conditional questions update - 29 October 2026
+- Deployed through the authenticated VentraIP cPanel File Manager and Terminal.
+- Applied 002-survey-email and 003-question-logic. Converted legacy internal
+  schema_migrations, sessions and worker_state tables from MyISAM to InnoDB.
+  The migration now repairs these known internal tables and explicitly sets
+  InnoDB when creating them; it retains the engine guard for application tables.
+- Backed up application and database before changes. Application rollback:
+  /home/clickeco/.config/clicksurvey/before-logic-20261029/application.tar.gz
+  Database snapshot: clickeco_clicksurvey-2026-10-29T07-36-15-456Z.sql.gz
+  Copied the database snapshot to the local ignored backups directory.
+- Original watchdog/collector cron entries restored after the deployment.
+- Verified authenticated question creation, condition persistence, edit-page
+  rendering, public Yes/No branch switching, submission of both paths and stored
+  answers. Hidden required questions were skipped and stale answers excluded.
+- The isolated deployment-check survey was archived after testing. No test
+  invitations were sent. Existing customer survey questions were not edited.
+- /health and /ready returned HTTP 200 after migration and end-to-end checks.
+- ZIP in dist/ was revised to include the legacy-engine migration repair.
+
+Original deployment record - 24 October 2026
 
 LIVE: https://clickecommerce.com.au/clicksurvey/
 Login: https://clickecommerce.com.au/clicksurvey/login

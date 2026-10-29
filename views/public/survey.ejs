@@ -7,10 +7,14 @@
     </div>
   </div>
   <% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
-  <form method="post" action="<%= appPath %>/s/<%= survey.survey_key %>">
+  <% const isPreview = typeof preview !== 'undefined' && preview; %>
+  <% if (isPreview) { %><div class="alert alert-info"><strong>Blank survey preview</strong> — Try answers to see conditional questions. Nothing is saved. <a href="<%= appPath %>/admin/surveys">Back to surveys</a></div><% } %>
+  <% if (isPreview) { %><div data-survey-logic><% } else { %>
+  <form method="post" action="<%= appPath %>/s/<%= survey.survey_key %>" data-survey-logic>
+  <% } %>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
     <% questions.forEach(question => { %>
-      <div class="mb-3">
+      <div class="mb-3" data-question-id="<%= question.id %>" data-condition-question-id="<%= question.condition_question_id || '' %>" data-condition-value="<%= question.condition_value || '' %>" <%= question.condition_question_id ? 'hidden' : '' %>>
         <label class="form-label"><%= question.question_text %><%= question.required ? ' *' : '' %></label>
         <% if (question.question_type === 'short_text') { %>
           <input type="text" name="question_<%= question.id %>" class="form-control" />
@@ -52,7 +56,12 @@
         <% } %>
       </div>
     <% }) %>
+    <% if (isPreview) { %><button class="btn btn-secondary" type="button" disabled>Preview only — responses are not saved</button></div><% } else { %>
     <button class="btn btn-primary">Submit Survey</button>
   </form>
+    <% } %>
+  <% if (questions.some(q => q.condition_question_id)) { %><noscript><p>Please enable JavaScript to see the follow-up questions for your answers.</p></noscript><% } %>
+  <script src="<%= appPath %>/question-logic.js" defer></script>
+  <script src="<%= appPath %>/survey-logic.js" defer></script>
   <footer class="mt-4 text-muted"><%= survey.footer_text %></footer>
 </div>
