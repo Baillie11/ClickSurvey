@@ -2,6 +2,17 @@ const express = require("express");
 const { transaction } = require("../models/db");
 const { answersFor, bad } = require("../validation");
 const router = express.Router();
+router.get('/email-open/:id/:key', async (req, res) => {
+  const { trackingKey, pixel } = require('../email-tracking');
+  res.set({ 'Cache-Control': 'no-store, no-cache, must-revalidate, private', 'Content-Type': 'image/gif' });
+  if (/^[1-9]\d{0,9}$/.test(req.params.id) && /^[a-f0-9]{64}\.gif$/.test(req.params.key) && req.method === 'GET') {
+    const [[invite]] = await global.db.execute('SELECT invite_token FROM survey_invites WHERE id=? AND email_tracking_enabled=1', [req.params.id]);
+    if (invite && require('crypto').timingSafeEqual(Buffer.from(trackingKey(invite.invite_token)), Buffer.from(req.params.key.slice(0, 64)))) {
+      await global.db.execute("UPDATE survey_invites SET email_opened_at=COALESCE(email_opened_at,UTC_TIMESTAMP()) WHERE id=? AND status IN ('Sending','Sent','Opened','Completed') AND expires_at>UTC_TIMESTAMP() AND NOT EXISTS (SELECT 1 FROM suppressions WHERE email=survey_invites.recipient_email)", [req.params.id]);
+    }
+  }
+  res.send(pixel);
+});
 const inviteQuery =
   "SELECT si.*,s.title,s.thank_you_message,s.footer_text,s.status AS survey_status,EXISTS(SELECT 1 FROM suppressions sp WHERE sp.email=si.recipient_email) AS suppressed FROM survey_invites si JOIN surveys s ON s.id=si.survey_id WHERE si.invite_token = ?";
 function usable(invite) {

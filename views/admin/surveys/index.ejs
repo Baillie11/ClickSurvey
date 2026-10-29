@@ -3,6 +3,7 @@
   <a class="btn btn-primary" href="<%= appPath %>/admin/surveys/new">New Survey</a>
 </div>
 <p>Use <strong>Preview blank survey</strong> to view the questions and try conditional answers without saving a response.</p>
+<p><a class="btn btn-outline-primary" href="<%= appPath %>/admin/send-invitation">Send one-off / test email</a></p>
 <% if (typeof status !== 'undefined' && status) { %><p>Showing Active surveys. <a href="<%= appPath %>/admin/surveys">Show all surveys</a></p><% } %>
 <div class="table-responsive">
   <table class="table table-hover">
@@ -16,6 +17,7 @@
           <td><%= survey.status %></td>
           <td><%= new Date(survey.updated_at).toLocaleDateString() %></td>
           <td>
+            <a class="btn btn-sm btn-outline-primary" href="<%= appPath %>/admin/surveys/<%= survey.id %>/invitations">Recipients / delivery history</a>
             <a class="btn btn-sm btn-outline-primary" href="<%= appPath %>/admin/surveys/<%= survey.id %>/preview">Preview blank survey</a>
             <a class="btn btn-sm btn-outline-secondary" href="<%= appPath %>/admin/surveys/<%= survey.id %>/edit">Edit</a>
             <a class="btn btn-sm btn-outline-secondary" href="<%= appPath %>/admin/surveys/<%= survey.id %>/questions">Questions</a>

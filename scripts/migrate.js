@@ -79,6 +79,12 @@ async function migrate(connection) {
         "INSERT INTO schema_migrations VALUES ('003-question-logic', UTC_TIMESTAMP())",
       );
     }
+    const [historyDone] = await connection.query("SELECT version FROM schema_migrations WHERE version = '004-invitation-history'");
+    if (!historyDone.length) {
+      await column('survey_invites', 'email_opened_at', 'DATETIME NULL');
+      await column('survey_invites', 'email_tracking_enabled', 'TINYINT(1) NOT NULL DEFAULT 0');
+      await connection.query("INSERT INTO schema_migrations VALUES ('004-invitation-history', UTC_TIMESTAMP())");
+    }
     if (done.length) return;
     await column("users", "is_admin", "TINYINT(1) NOT NULL DEFAULT 0");
     await column("api_clients", "key_id", "VARCHAR(32) NULL");

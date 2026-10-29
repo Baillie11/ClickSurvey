@@ -147,8 +147,9 @@ test("branching migration upgrades existing databases once and remains repeatabl
   };
   await migrate(db);
   await migrate(db);
-  assert.deepEqual([...columns], ["condition_question_id", "condition_value"]);
-  assert.equal(changes, 2);
+  assert.deepEqual([...columns], ["condition_question_id", "condition_value", "email_opened_at", "email_tracking_enabled"]);
+  assert.equal(changes, 4);
+  assert.ok(versions.has("004-invitation-history"));
   assert.ok(versions.has("003-question-logic"));
 });
 

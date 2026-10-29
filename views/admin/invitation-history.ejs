@@ -1,0 +1,17 @@
+<h1>Invitations — <%= survey.title %></h1>
+<p><a href="<%= appPath %>/admin/surveys">Back to surveys</a> · <a href="<%= appPath %>/admin/send-invitation?survey_id=<%= survey.id %>">Send one-off / test email</a></p>
+<p><%= total %> invitation(s). All times are Australia/Brisbane (AEST). Sent means the mail server accepted the email, not confirmed inbox delivery.</p>
+<p>Email open detected means an email image was loaded. Privacy services may load it automatically; blocked images can hide opens. Survey link visited is a separate signal and can also be triggered by security scanners. Neither confirms a person read the email.</p>
+<div class="table-responsive"><table class="table table-hover">
+<thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Status</th><th>Queued</th><th>Due</th><th>Sent</th><th>Email open detected</th><th>Survey link visited</th><th>Completed</th><th>Attempts</th><th>Error</th></tr></thead>
+<tbody><% invites.forEach(i => { %><tr>
+<td><%= i.id %></td><td><%= i.recipient_name || '—' %></td><td><%= i.recipient_email %></td><td><%= i.status === 'Opened' ? 'Survey link visited' : i.status %></td>
+<td><%= formatTime(i.created_at) %></td><td><%= formatTime(i.due_at) %></td><td><%= formatTime(i.sent_at) %></td>
+<td><%= i.email_opened_at ? formatTime(i.email_opened_at) : !i.sent_at ? 'Not sent' : i.email_tracking_enabled ? 'Not detected' : 'Not tracked' %></td>
+<td><%= formatTime(i.opened_at) %></td><td><%= formatTime(i.completed_at) %></td><td><%= i.attempts %></td><td><%= i.last_error || '—' %></td>
+</tr><% }) %></tbody></table></div>
+<% if (!invites.length) { %><p>No invitations on this page.</p><% } %>
+<nav aria-label="Invitation pages">Page <%= page %>
+<% if (page > 1) { %><a href="?page=<%= page - 1 %>">Previous</a><% } %>
+<% if (page * 100 < total) { %><a href="?page=<%= page + 1 %>">Next</a><% } %>
+</nav>

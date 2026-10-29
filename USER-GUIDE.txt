@@ -1,4 +1,29 @@
 CLICK SURVEY — USER GUIDE
+PER-SURVEY RECIPIENT HISTORY
+In Surveys, choose Recipients / delivery history beside the survey. This lists
+each invitation, recipient, queue/due/sent times, email-open detection, survey-link
+visit, completion, attempts and errors. Times use Australia/Brisbane. History is
+paged in groups of 100 and includes failed and pending invitations.
+Email-open detection is available only for emails sent after this update.
+Older emails say Not tracked; newer emails without a signal say Not detected.
+An open signal means an image loaded, not proof a person read the email. Privacy
+proxies may trigger it automatically; blocked images can prevent it. Link visits
+are recorded separately and can also be triggered by security scanners.
+Deployment: stop services, back up the database, run npm run db:migrate with the
+migration account, then restart web and worker. Migration 004 adds tracking fields.
+
+ONE-OFF / TEST INVITATIONS
+Choose Send one-off / test email from Surveys, the dashboard, or Delivery.
+Select an Active survey, enter one recipient email and optional name, then click
+Send one invitation. No API client or automation rule is required. Draft surveys
+must be activated from Edit first. Only contact recipients you intend to invite.
+The normal worker sends the email using the survey's branding and subject.
+Check Delivery for Pending, Sent, or failure status. Sent means SMTP accepted it,
+not guaranteed inbox receipt. Suppressed/unsubscribed recipients are excluded.
+Resubmitting the same form does not queue another invitation. Open a new send
+form only when you deliberately want another email. Test responses are real and
+remain in reports. Private links expire after 30 days and allow one completion.
+
 Updated 24 October 2026
 Live installation: https://clickecommerce.com.au/clicksurvey
 Administrator email: supplied in the private live-admin-access.txt file.

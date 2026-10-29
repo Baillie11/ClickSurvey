@@ -143,6 +143,16 @@ router.get("/surveys/:id/preview", async (req, res) => {
   res.render("public/survey", { title: "Survey preview", survey: rows[0], questions, error: null, preview: true });
 });
 
+router.get('/surveys/:id/invitations', async (req, res) => {
+  const [[survey]] = await global.db.execute('SELECT id,title FROM surveys WHERE id=?', [req.params.id]);
+  if (!survey) throw bad('Survey not found', 404);
+  const page = integer(req.query.page || 1, 'page', 1, 1000000);
+  const [[count]] = await global.db.execute('SELECT COUNT(*) AS total FROM survey_invites WHERE survey_id=?', [survey.id]);
+  const [invites] = await global.db.query('SELECT id,recipient_name,recipient_email,status,created_at,due_at,sent_at,opened_at,email_opened_at,email_tracking_enabled,completed_at,attempts,last_error FROM survey_invites WHERE survey_id=? ORDER BY id DESC LIMIT 100 OFFSET ?', [survey.id, (page - 1) * 100]);
+  const formatTime = value => value ? new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value)) : '—';
+  res.render('admin/invitation-history', { title: 'Survey invitations', survey, invites, page, total: count.total, formatTime });
+});
+
 router.get("/surveys/new", (req, res) => {
   res.render("admin/surveys/new", {
     title: "New Survey",
@@ -507,6 +517,29 @@ router.get("/surveys/:id/responses/csv", async (req, res) => {
   res.send(csv);
 });
 
+async function renderSendInvitation(req, res, error = null) {
+  const [surveys] = await global.db.execute("SELECT id,title FROM surveys WHERE status='Active' ORDER BY title");
+  res.render('admin/send-invitation', {
+    title: 'Send one-off / test email', surveys, error,
+    requestId: req.body?.request_id || crypto.randomBytes(32).toString('hex'),
+    values: req.method === 'POST' ? req.body : { survey_id: req.query.survey_id },
+  });
+}
+router.get('/send-invitation', (req, res) => renderSendInvitation(req, res));
+router.post('/send-invitation', async (req, res) => {
+  try {
+    if (typeof req.body.request_id !== 'string' || !/^[a-f0-9]{64}$/.test(req.body.request_id))
+      throw bad('Invalid send form. Open a new send form.');
+    // Derive a private, stable token: repeated submission of this form cannot send twice.
+    const token = crypto.createHmac('sha256', req.session.csrf).update('manual:' + req.body.request_id).digest('hex');
+    const id = await require('../manual-invites').queueManualInvite(global.db, req.body, token, req.session.user.id);
+    res.redirect('/admin/delivery?queued=' + id);
+  } catch (error) {
+    if (![400, 409].includes(error.status)) throw error;
+    res.status(error.status);
+    await renderSendInvitation(req, res, error.message);
+  }
+});
 router.get("/delivery", async (req, res) => {
   const [invites] = await global.db.query(
     "SELECT id,recipient_email,status,attempts,due_at,last_error FROM survey_invites ORDER BY id DESC LIMIT 200",
@@ -518,6 +551,7 @@ router.get("/delivery", async (req, res) => {
     title: "Invitation delivery",
     invites,
     heartbeat: workers[0]?.heartbeat_at,
+    queued: /^\d+$/.test(req.query.queued || '') ? req.query.queued : null,
   });
 });
 router.post("/delivery/:id/retry", async (req, res) => {

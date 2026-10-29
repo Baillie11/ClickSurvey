@@ -1,0 +1,20 @@
+<h1>Send one-off / test email</h1>
+<p>Send one survey invitation to one recipient. No automation rule or API client is needed.</p>
+<% if (error) { %><div class="alert alert-danger" role="alert"><%= error %></div><% } %>
+<% if (!surveys.length) { %><div class="alert alert-info">No active surveys. <a href="<%= appPath %>/admin/surveys">Edit a survey</a> and change its status to Active first.</div><% } %>
+<form method="post" action="<%= appPath %>/admin/send-invitation" class="card p-4">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input type="hidden" name="request_id" value="<%= requestId %>">
+  <label class="form-label" for="survey">Survey</label>
+  <select class="form-select mb-3" id="survey" name="survey_id" required>
+    <option value="">Choose an active survey</option>
+    <% surveys.forEach(s => { %><option value="<%= s.id %>" <%= String(values.survey_id || '') === String(s.id) ? 'selected' : '' %>><%= s.title %></option><% }) %>
+  </select>
+  <label class="form-label" for="recipient-email">Recipient email</label>
+  <input class="form-control mb-3" id="recipient-email" name="recipient_email" type="email" maxlength="254" value="<%= values.recipient_email || '' %>" required>
+  <label class="form-label" for="recipient-name">Recipient name (optional)</label>
+  <input class="form-control mb-3" id="recipient-name" name="recipient_name" maxlength="255" value="<%= values.recipient_name || '' %>">
+  <p>The email uses the survey's sender name and subject. It is queued for the next delivery check. Unsubscribed addresses are excluded. Test answers are real responses and appear in reports.</p>
+  <button class="btn btn-primary" <%= surveys.length ? '' : 'disabled' %>>Send one invitation</button>
+</form>
+<p class="mt-3"><a href="<%= appPath %>/admin/delivery">View invitation delivery</a></p>

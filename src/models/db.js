@@ -17,9 +17,9 @@ async function initDb() {
   try {
     await pool.query("SELECT is_admin FROM users LIMIT 1");
     const [rows] = await pool.query(
-      "SELECT version FROM schema_migrations WHERE version IN ('001-hardening', '002-survey-email', '003-question-logic')",
+      "SELECT version FROM schema_migrations WHERE version IN ('001-hardening', '002-survey-email', '003-question-logic', '004-invitation-history')",
     );
-    if (rows.length !== 3) throw new Error("Run npm run db:migrate before starting");
+    if (rows.length !== 4) throw new Error("Run npm run db:migrate before starting");
     return pool;
   } catch (error) {
     await pool.end();

@@ -1,4 +1,6 @@
 <h1>Invitation delivery</h1>
+<p><a class="btn btn-primary" href="<%= appPath %>/admin/send-invitation">Send one-off / test email</a></p>
+<% if (typeof queued !== 'undefined' && queued) { %><div class="alert alert-success" role="status">Invitation #<%= queued %> was queued. Check its status below; queued does not mean delivered.</div><% } %>
 <p>Worker last checked in: <%= heartbeat ? new Date(heartbeat).toISOString() : 'Never — start npm run worker' %></p>
 <p>DeliveryUnknown means sending was interrupted or the SMTP result was ambiguous. Check the provider before taking further action to avoid duplicate emails.</p>
 <table class="table"><thead><tr><th>ID</th><th>Recipient</th><th>Status</th><th>Attempts</th><th>Due</th><th>Error</th><th>Action</th></tr></thead><tbody>

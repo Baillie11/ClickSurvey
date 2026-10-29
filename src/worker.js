@@ -64,6 +64,8 @@ async function deliverOne(db, transport) {
   const base = process.env.BASE_URL.replace(/\/$/, "");
   const url = `${base}/r/${invite.invite_token}`;
   const unsubscribe = `${base}/unsubscribe/${invite.invite_token}`;
+  const openPixel = `${base}/email-open/${invite.id}/${require('./email-tracking').trackingKey(invite.invite_token)}.gif`;
+  await db.execute("UPDATE survey_invites SET email_tracking_enabled=1 WHERE id=? AND status='Sending'", [invite.id]);
   // Older events may contain arbitrary metadata; use only valid email overrides.
   const emailSettings = JSON.parse(invite.metadata_json || "{}").invitationEmail || {};
   function override(field) {
@@ -83,7 +85,7 @@ async function deliverOne(db, transport) {
       subject: override("subject") || invite.email_subject || `Quick feedback about your ${invite.source_app} experience`,
       messageId: `<clicksurvey-${invite.id}-${invite.invite_token}@${new URL(base).hostname}>`,
       text: `Hi ${invite.recipient_name || "there"},\nPlease share your feedback: ${url}\nUnsubscribe from future surveys: ${unsubscribe}`,
-      html: `<p>Hi ${escapeHtml(invite.recipient_name || "there")},</p><p>We would love your feedback on ${escapeHtml(invite.survey_title)}.</p><p><a href="${escapeHtml(url)}">Complete your survey</a></p><p><a href="${escapeHtml(unsubscribe)}">Unsubscribe from future surveys</a></p>`,
+      html: `<p>Hi ${escapeHtml(invite.recipient_name || "there")},</p><p>We would love your feedback on ${escapeHtml(invite.survey_title)}.</p><p><a href="${escapeHtml(url)}">Complete your survey</a></p><p><a href="${escapeHtml(unsubscribe)}">Unsubscribe from future surveys</a></p><p><small>This invitation records email image loads and survey-link visits to help us understand engagement.</small></p><img src="${escapeHtml(openPixel)}" width="1" height="1" alt="">`,
     });
     if (info.rejected?.length)
       throw Object.assign(new Error("Recipient rejected"), {
